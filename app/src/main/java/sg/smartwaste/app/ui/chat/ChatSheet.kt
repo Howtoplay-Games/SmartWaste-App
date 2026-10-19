@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -124,30 +125,30 @@ fun ChatSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
-        containerColor = SW.Bg,
+        containerColor = SW.Sheet,
         dragHandle = null,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
     ) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.88f).imePadding()) {
             // Header
             Row(
-                Modifier.fillMaxWidth().background(SW.Ink).padding(horizontal = 18.dp, vertical = 16.dp),
+                Modifier.fillMaxWidth().background(SW.heroBrush).padding(horizontal = 18.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    Modifier.size(42.dp).clip(CircleShape).background(Brush.linearGradient(listOf(SW.Emerald, SW.Electric))),
+                    Modifier.size(42.dp).clip(CircleShape).background(Brush.linearGradient(listOf(SW.Lime, SW.LimeDeep))),
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.Forum, null, tint = Color.White, modifier = Modifier.size(22.dp)) }
+                ) { Icon(Icons.Rounded.Forum, null, tint = SW.OnLime, modifier = Modifier.size(22.dp)) }
                 Spacer(Modifier.size(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("SmartWaste Assistant", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Text("SmartWaste Assistant", color = SW.Text, style = MaterialTheme.typography.titleMedium)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(7.dp).clip(CircleShape).background(SW.Lime))
                         Spacer(Modifier.size(6.dp))
-                        Text("AI support · e-waste & app help", color = Color.White.copy(alpha = 0.65f), style = MaterialTheme.typography.labelSmall)
+                        Text("AI support · e-waste & app help", color = SW.Muted, style = MaterialTheme.typography.labelSmall)
                     }
                 }
-                CircleIconButton(Icons.Rounded.Close, "Close", onDismiss, container = Color.White.copy(alpha = 0.12f), content = Color.White, size = 38.dp, iconSize = 18.dp)
+                CircleIconButton(Icons.Rounded.Close, "Close", onDismiss, container = SW.Card2, content = SW.Text, size = 38.dp, iconSize = 18.dp)
             }
 
             LazyColumn(
@@ -164,8 +165,8 @@ fun ChatSheet(onDismiss: () -> Unit) {
                 LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(suggestions) { q ->
                         Text(
-                            q, color = SW.Ink, style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White).clickable { vm.send(q) }
+                            q, color = SW.Text, style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.clip(RoundedCornerShape(50)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(50)).clickable { vm.send(q) }
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                         )
                     }
@@ -178,14 +179,14 @@ fun ChatSheet(onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).background(Color.White).padding(horizontal = 18.dp, vertical = 15.dp),
+                    Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).background(SW.Field).border(1.dp, SW.Line, RoundedCornerShape(26.dp)).padding(horizontal = 18.dp, vertical = 15.dp),
                 ) {
                     if (input.isEmpty()) Text("Ask about e-waste or the app…", color = SW.Muted, style = MaterialTheme.typography.bodyLarge)
                     BasicTextField(
                         value = input,
                         onValueChange = { input = it },
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = SW.Ink),
-                        cursorBrush = SolidColor(SW.Emerald),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = SW.Text),
+                        cursorBrush = SolidColor(SW.Lime),
                         maxLines = 4,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { vm.send(input); input = "" }),
@@ -195,7 +196,7 @@ fun ChatSheet(onDismiss: () -> Unit) {
                 Spacer(Modifier.size(10.dp))
                 CircleIconButton(
                     Icons.AutoMirrored.Rounded.Send, "Send", { vm.send(input); input = "" },
-                    container = if (input.isBlank()) SW.Line else SW.Ink, content = Color.White, size = 52.dp,
+                    container = if (input.isBlank()) SW.Card2 else SW.Lime, content = if (input.isBlank()) SW.Muted else SW.OnLime, size = 52.dp, bordered = false,
                 )
             }
         }
@@ -207,7 +208,7 @@ private fun Bubble(m: ChatTurn) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (m.fromUser) Arrangement.End else Arrangement.Start) {
         Text(
             m.text,
-            color = if (m.fromUser) Color.White else SW.Ink,
+            color = if (m.fromUser) SW.OnLime else SW.Text,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
                 .widthIn(max = 300.dp)
@@ -218,7 +219,7 @@ private fun Bubble(m: ChatTurn) {
                         bottomEnd = if (m.fromUser) 6.dp else 22.dp,
                     )
                 )
-                .background(if (m.fromUser) SW.Ink else Color.White)
+                .background(if (m.fromUser) SW.Lime else SW.Card)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
@@ -228,12 +229,12 @@ private fun Bubble(m: ChatTurn) {
 private fun TypingBubble() {
     val t = rememberInfiniteTransition(label = "typing")
     Row(
-        Modifier.clip(RoundedCornerShape(22.dp)).background(Color.White).padding(horizontal = 18.dp, vertical = 16.dp),
+        Modifier.clip(RoundedCornerShape(22.dp)).background(SW.Card).padding(horizontal = 18.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         repeat(3) { i ->
             val a by t.animateFloat(0.25f, 1f, infiniteRepeatable(tween(600, delayMillis = i * 150), RepeatMode.Reverse), label = "dot$i")
-            Box(Modifier.size(8.dp).alpha(a).clip(CircleShape).background(SW.Emerald))
+            Box(Modifier.size(8.dp).alpha(a).clip(CircleShape).background(SW.Lime))
         }
     }
 }

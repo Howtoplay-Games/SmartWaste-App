@@ -14,6 +14,7 @@ Team: Randy Chong Haw, Oh Jun Long, Poh Wei Lun · Advisor: Mary Lay
 
 | | Feature | What it does |
 | --- | --- | --- |
+| 🔐 | **Accounts** | Welcome Back / Create Account / Forgot Password screens. Email and password accounts are stored on the device with hashed passwords, plus Remember me, a 5-digit reset code, and Google sign-in via Credential Manager. Points and history are kept per account. |
 | 📷 | **AI e-waste scanner** | Cloud vision AI (OpenRouter, with an automatic multi-model fallback chain) identifies the item, brand, smart-bin compartment, hazard level, battery presence, recoverable materials and resale value. If the cloud is unreachable, an **on-device ML Kit backup AI** takes over and you can correct the category. |
 | 🗺️ | **Live recycling map** | Modern vector map (MapLibre + OpenFreeMap). Shows bins and buyers from **every operator**, filtered by item category. Full bins are skipped automatically. |
 | 🧭 | **Turn-by-turn navigation** | Walk, cycle or drive routes with ETA, step list, live follow-mode, off-route re-routing and arrival detection. One tap hands off to Google Maps voice navigation. |
@@ -24,7 +25,12 @@ Team: Randy Chong Haw, Oh Jun Long, Poh Wei Lun · Advisor: Mary Lay
 | 💬 | **AI support button** | A small floating button in the bottom-right corner opens an AI chat for e-waste and app questions. It falls back to an offline FAQ. |
 | 🔒 | **Transparency & anti-fraud** | Points formula shown to users, mock-GPS blocking, one-time code use (hashed), QR distance check, and a daily deposit cap. |
 
-The UI follows the reference designs: soft neutral canvas, rounded 24–32 dp cards, a dark floating pill navigation bar, pill chips, gradient hero cards, and a dark-navy scanner screen.
+**Design.** One palette is used on every screen: near-black olive surfaces with a single lime accent, plus harmonised green and yellow tints for categories and charts. The palette and auth screens follow the "Welcome Back" login reference. The main screens follow the second reference's layout:
+- a hero header with a big number and a stats strip
+- a rounded content sheet
+- trend charts and a Month / Quarter / Year segmented control
+- category grids and progress bars
+- a bottom bar with a raised centre **Scan** button
 
 ---
 
@@ -85,10 +91,11 @@ app/src/main/java/sg/smartwaste/app/
 │   ├── routing/     OSRM turn-by-turn routing
 │   ├── verify/      Barcode / IMEI / serial verification
 │   ├── rewards/     Points engine, rewards catalogue, tiers
+│   ├── auth/        On-device accounts, password hashing, Google sign-in
 │   ├── db/          Room entities & DAOs
 │   └── location/    Fused location + mock detection
 └── ui/
-    ├── home/ scan/ map/ deposit/ rewards/ profile/ chat/ onboarding/
+    ├── auth/ home/ scan/ map/ deposit/ rewards/ profile/ chat/
     ├── camera/      CameraX + ML Kit analyzers
     └── components/  Design-system components
 ```
@@ -98,5 +105,5 @@ app/src/main/java/sg/smartwaste/app/
 ## Current limitations
 
 - **Smart-bin telemetry** (fill level) for the SmartWaste pilot bins is simulated until the Arduino/IoT backend is connected.
-- **Points and vouchers are stored on the device.** A production deployment needs a backend to issue vouchers and run server-side anti-fraud. That backend should also hold the AI key.
+- **Accounts, points and vouchers are stored on the device**, and password-reset codes are shown on screen instead of emailed. A production deployment needs a backend to issue vouchers and run server-side anti-fraud. That backend should also hold the AI key.
 - The **rewards catalogue** is a demo. Partner names are placeholders.

@@ -64,7 +64,7 @@ Without a key, the app still works: detection falls back to the **on-device ML K
 
 1. Connect an Android phone with **USB debugging** enabled (*Settings ▸ About phone ▸ tap Build number 7 times ▸ Developer options ▸ USB debugging*), or start an emulator from **Device Manager** using a *Google Play* system image.
 2. Select the **app** run configuration and your device, then click **Run ▶**.
-3. On first launch, enter your name and allow **Camera** and **Location** when asked.
+3. On first launch, tap **Sign up** and create an account (name, email, and a password with 8+ characters including a letter and a number). Then allow **Camera** and **Location** when asked.
 
 ### Command-line build (optional)
 
@@ -83,9 +83,17 @@ On Windows use `gradlew.bat assembleDebug`.
 | --- | --- | --- |
 | `SMARTWASTE_VISION_MODELS` | Ordered vision-model chain used for e-waste detection and bin-photo checks. | `google/gemini-3.5-flash,google/gemini-2.5-flash,openrouter/free` |
 | `SMARTWASTE_CHAT_MODELS` | Ordered model chain for the AI support chat and serial-number checks. | same as above |
+| `SMARTWASTE_GOOGLE_WEB_CLIENT_ID` | Enables **Continue with Google** on the login screen (see below). | empty (off) |
 | `SMARTWASTE_DATAGOV_EWASTE_DATASET_ID` | Adds NEA's official *E-waste Recycling (GEOJSON)* points from data.gov.sg. | empty (off) |
 
 **Model IDs:** OpenRouter adds and retires models regularly. If a model is retired, the next one in the chain is used automatically. To change models, pick IDs from <https://openrouter.ai/models> (filter by *image input* for the vision chain).
+
+**Google sign-in:**
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth client ID** of type **Android**. Use package `sg.smartwaste.app` and your debug keystore's SHA-1, which you get from `./gradlew signingReport`.
+2. Create a second OAuth client ID of type **Web application**.
+3. Copy the *Web* client ID into `local.properties` as `SMARTWASTE_GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com` and rebuild.
+
+Without it, the Google button shows a "not set up" message and email sign-in still works. **Sign in with Apple** on Android needs an Apple Services ID plus a backend, so this build shows an explanation instead.
 
 **NEA dataset id:** open <https://data.gov.sg/dataset/e-waste-recycling>, click **API**, copy the dataset id (looks like `d_…`), and set it in `gradle.properties` or `local.properties`.
 
@@ -108,6 +116,12 @@ SMARTWASTE:BIN:SW-005     (Woodlands Civic Centre)
 ```
 
 Generate one with any QR generator, then use **Scan ▸ Scan bin QR**. A QR scanned more than 2 km from its bin is rejected (anti-fraud). Set your emulator location nearby when testing.
+
+### Accounts
+- Accounts are stored **on the device**. Passwords are saved only as salted PBKDF2 hashes. Points and history are kept per account.
+- **Remember me** keeps you signed in after the app is closed. Untick it to be signed out when the app process ends.
+- **Forgot Password?** creates a 5-digit code valid for 10 minutes. There's no mail server in this build, so the code is **shown on screen (demo mode)** instead of being emailed.
+- Upgrading from the first version resets local app data once, because the database now includes accounts.
 
 ### Item verification
 - **Barcode:** scan the EAN/UPC on the product box. It's checked against UPCitemdb and Open Products Facts.

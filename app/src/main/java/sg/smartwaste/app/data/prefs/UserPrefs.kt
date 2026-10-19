@@ -13,27 +13,29 @@ private val Context.dataStore by preferencesDataStore(name = "smartwaste_prefs")
 class UserPrefs(private val context: Context) {
 
     private object Keys {
-        val NAME = stringPreferencesKey("name")
-        val ONBOARDED = booleanPreferencesKey("onboarded")
+        val SESSION_EMAIL = stringPreferencesKey("session_email")
+        val LAST_EMAIL = stringPreferencesKey("last_email")
         val API_KEY = stringPreferencesKey("openrouter_key_override")
-        val DARK_MAP = booleanPreferencesKey("dark_map")
+        val DARK_MAP = booleanPreferencesKey("dark_map_v2")
     }
 
-    val userName: Flow<String> = context.dataStore.data.map { it[Keys.NAME].orEmpty() }
-    val onboarded: Flow<Boolean> = context.dataStore.data.map { it[Keys.ONBOARDED] ?: false }
+    /** Persisted session (only written when "Remember me" is ticked). */
+    val sessionEmail: Flow<String?> = context.dataStore.data.map { it[Keys.SESSION_EMAIL]?.takeIf { e -> e.isNotBlank() } }
+    val lastEmail: Flow<String> = context.dataStore.data.map { it[Keys.LAST_EMAIL].orEmpty() }
 
     /** Optional key entered in Settings. Overrides the build-time key from local.properties. */
     val apiKeyOverride: Flow<String> = context.dataStore.data.map { it[Keys.API_KEY].orEmpty() }
-    val darkMap: Flow<Boolean> = context.dataStore.data.map { it[Keys.DARK_MAP] ?: false }
 
-    suspend fun completeOnboarding(name: String) {
+    /** Dark basemap by default so the map matches the app's dark theme. */
+    val darkMap: Flow<Boolean> = context.dataStore.data.map { it[Keys.DARK_MAP] ?: true }
+
+    suspend fun setSession(email: String?, remember: Boolean) {
         context.dataStore.edit {
-            it[Keys.NAME] = name.trim()
-            it[Keys.ONBOARDED] = true
+            if (email != null && remember) it[Keys.SESSION_EMAIL] = email else it.remove(Keys.SESSION_EMAIL)
+            if (email != null) it[Keys.LAST_EMAIL] = email
         }
     }
 
-    suspend fun setName(name: String) = context.dataStore.edit { it[Keys.NAME] = name.trim() }
     suspend fun setApiKey(key: String) = context.dataStore.edit { it[Keys.API_KEY] = key.trim() }
     suspend fun setDarkMap(dark: Boolean) = context.dataStore.edit { it[Keys.DARK_MAP] = dark }
 }

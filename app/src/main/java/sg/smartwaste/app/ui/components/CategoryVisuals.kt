@@ -22,12 +22,13 @@ val EWasteCategory.icon: ImageVector
         EWasteCategory.LARGE_APPLIANCE -> Icons.Rounded.Kitchen
     }
 
+/** Category tints all come from the shared harmonised palette. */
 val EWasteCategory.tint: Color
     get() = when (this) {
-        EWasteCategory.DEVICE_WITH_BATTERY -> SW.Electric
-        EWasteCategory.APPLIANCE_NO_BATTERY -> Color(0xFF7C3AED)
+        EWasteCategory.DEVICE_WITH_BATTERY -> SW.Lime
+        EWasteCategory.APPLIANCE_NO_BATTERY -> SW.Sage
         EWasteCategory.SMALL_BATTERY -> SW.Amber
-        EWasteCategory.COMPONENT -> SW.Emerald
-        EWasteCategory.LAMP -> Color(0xFFEAB308)
-        EWasteCategory.LARGE_APPLIANCE -> Color(0xFF0E7490)
+        EWasteCategory.COMPONENT -> SW.Mint
+        EWasteCategory.LAMP -> SW.Butter
+        EWasteCategory.LARGE_APPLIANCE -> SW.Moss
     }

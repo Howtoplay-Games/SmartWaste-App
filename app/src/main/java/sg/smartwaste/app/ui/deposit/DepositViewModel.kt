@@ -218,6 +218,7 @@ class DepositViewModel(private val c: AppContainer) : ViewModel() {
             val usable = verification?.takeIf { it.level != VerificationLevel.DUPLICATE }
             c.history.addDeposit(
                 DepositEntity(
+                    userEmail = "", // filled in by HistoryRepository
                     timestamp = System.currentTimeMillis(),
                     itemName = s.itemName.ifBlank { category.title },
                     category = category.name,

@@ -1,8 +1,11 @@
 package sg.smartwaste.app.data
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import sg.smartwaste.app.data.auth.AuthRepository
 import sg.smartwaste.app.data.db.AppDatabase
 import sg.smartwaste.app.data.db.DepositEntity
 import sg.smartwaste.app.data.db.RedemptionEntity
@@ -22,14 +25,20 @@ data class Impact(
     val byCategory: Map<EWasteCategory, Int> = emptyMap(),
 )
 
-class HistoryRepository(private val db: AppDatabase) {
+/** Per-account recycling history, points and vouchers. */
+@OptIn(ExperimentalCoroutinesApi::class)
+class HistoryRepository(private val db: AppDatabase, private val auth: AuthRepository) {
 
-    val deposits: Flow<List<DepositEntity>> = db.depositDao().observeAll()
-    val redemptions: Flow<List<RedemptionEntity>> = db.redemptionDao().observeAll()
-    val recentScans: Flow<List<ScanEntity>> = db.scanDao().observeRecent()
+    private val user: Flow<String> = auth.currentEmail.map { it.orEmpty() }
 
-    val lifetimePoints: Flow<Int> = db.depositDao().observeEarned()
-    val balance: Flow<Int> = combine(db.depositDao().observeEarned(), db.redemptionDao().observeSpent()) { e, s -> e - s }
+    val deposits: Flow<List<DepositEntity>> = user.flatMapLatest { db.depositDao().observeAll(it) }
+    val redemptions: Flow<List<RedemptionEntity>> = user.flatMapLatest { db.redemptionDao().observeAll(it) }
+    val recentScans: Flow<List<ScanEntity>> = user.flatMapLatest { db.scanDao().observeRecent(it) }
+
+    val lifetimePoints: Flow<Int> = user.flatMapLatest { db.depositDao().observeEarned(it) }
+    val balance: Flow<Int> = user.flatMapLatest { u ->
+        combine(db.depositDao().observeEarned(u), db.redemptionDao().observeSpent(u)) { e, s -> e - s }
+    }
 
     val impact: Flow<Impact> = deposits.map { list ->
         Impact(
@@ -44,18 +53,21 @@ class HistoryRepository(private val db: AppDatabase) {
         )
     }
 
-    suspend fun addDeposit(entity: DepositEntity): Long = db.depositDao().insert(entity)
+    suspend fun currentUser(): String = auth.currentEmailNow()
+
+    suspend fun addDeposit(entity: DepositEntity): Long = db.depositDao().insert(entity.copy(userEmail = currentUser()))
 
     suspend fun depositsToday(): Int {
         val midnight = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-        return db.depositDao().countSince(midnight)
+        return db.depositDao().countSince(currentUser(), midnight)
     }
 
     suspend fun recordScan(result: DetectionResult) {
         db.scanDao().insert(
             ScanEntity(
+                userEmail = currentUser(),
                 timestamp = result.timestamp,
                 itemName = result.itemName,
                 category = result.category?.name,
@@ -69,12 +81,14 @@ class HistoryRepository(private val db: AppDatabase) {
 
     /** Redeems a reward if the balance allows. Returns the created redemption. */
     suspend fun redeem(reward: Reward): Result<RedemptionEntity> {
-        val balance = db.depositDao().earned() - db.redemptionDao().spent()
+        val u = currentUser()
+        val balance = db.depositDao().earned(u) - db.redemptionDao().spent(u)
         if (balance < reward.cost) return Result.failure(IllegalStateException("Not enough points"))
         val code = "SW-" + (1..3).joinToString("-") {
             (1..4).map { "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Random.nextInt(32)] }.joinToString("")
         }
         val entity = RedemptionEntity(
+            userEmail = u,
             timestamp = System.currentTimeMillis(),
             rewardId = reward.id,
             rewardTitle = reward.title,
