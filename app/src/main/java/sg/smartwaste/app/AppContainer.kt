@@ -9,6 +9,7 @@ import sg.smartwaste.app.data.SessionStore
 import sg.smartwaste.app.data.ai.AiRepository
 import sg.smartwaste.app.data.ai.OnDeviceClassifier
 import sg.smartwaste.app.data.ai.OpenRouterClient
+import sg.smartwaste.app.data.auth.AuthRepository
 import sg.smartwaste.app.data.db.AppDatabase
 import sg.smartwaste.app.data.location.LocationClient
 import sg.smartwaste.app.data.places.PlacesRepository
@@ -36,7 +37,8 @@ class AppContainer(context: Context) {
 
     val prefs = UserPrefs(appContext)
     private val db = AppDatabase.build(appContext)
-    val history = HistoryRepository(db)
+    val auth = AuthRepository(db.userDao(), prefs)
+    val history = HistoryRepository(db, auth)
     val location = LocationClient(appContext)
     val places = PlacesRepository(appContext, http, json)
     val routing = RoutingRepository(http, json)

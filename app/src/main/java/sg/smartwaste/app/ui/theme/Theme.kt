@@ -4,8 +4,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -13,54 +14,71 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** SmartWaste design tokens: soft neutral canvas, ink pills, emerald accent, navy scanner. */
+/**
+ * SmartWaste design tokens: ONE palette used on every screen.
+ * Near-black olive surfaces + a single lime accent (from the login reference),
+ * with harmonised green/yellow tints for categories and charts.
+ */
 object SW {
-    val Ink = Color(0xFF111316)
-    val Ink2 = Color(0xFF23262B)
-    val Bg = Color(0xFFF2F3F5)
-    val Card = Color(0xFFFFFFFF)
-    val Muted = Color(0xFF8A8F98)
-    val Subtle = Color(0xFF5B616B)
-    val Line = Color(0xFFE6E8EC)
-    val Field = Color(0xFFEDEFF2)
+    // Surfaces
+    val Bg = Color(0xFF0A0B07)          // app background
+    val Sheet = Color(0xFF101209)       // content sheet under hero headers
+    val Card = Color(0xFF171A10)        // cards
+    val Card2 = Color(0xFF20241A)       // raised elements, chips, icon buttons
+    val Field = Color(0xFF0E1009)       // text fields
+    val Line = Color(0xFF2A2E21)        // borders & dividers
 
-    val Emerald = Color(0xFF12B76A)
-    val EmeraldDeep = Color(0xFF067647)
-    val Mint = Color(0xFFDCFCE7)
-    val Lime = Color(0xFFCDF463)
+    // Text
+    val Text = Color(0xFFF4F6EC)
+    val Subtle = Color(0xFFB3B8A6)
+    val Muted = Color(0xFF7B8070)
 
-    val Navy = Color(0xFF071339)
-    val Navy2 = Color(0xFF13245C)
-    val Navy3 = Color(0xFF243672)
-    val Electric = Color(0xFF2F6BFF)
-    val Sky = Color(0xFFE3ECFF)
+    // Accent
+    val Lime = Color(0xFFD8F65C)
+    val LimeDeep = Color(0xFFA6C437)
+    val LimeSoft = Color(0x24D8F65C)     // 14% lime wash
+    val OnLime = Color(0xFF0A0B07)
+    val Olive = Color(0xFF3B4715)
+    val OliveDark = Color(0xFF1A2008)
 
-    val Amber = Color(0xFFF59E0B)
-    val AmberSoft = Color(0xFFFEF3C7)
-    val Coral = Color(0xFFEF4444)
-    val CoralSoft = Color(0xFFFEE2E2)
+    // Harmonised tints (categories, charts, place types)
+    val Mint = Color(0xFF7FD8C4)
+    val Sage = Color(0xFF9FE0A8)
+    val Amber = Color(0xFFF2C14E)
+    val Butter = Color(0xFFF2E27A)
+    val Moss = Color(0xFFB5C77A)
+
+    // Semantic
+    val Warn = Color(0xFFF2B544)
+    val Danger = Color(0xFFF0705F)
+    val DangerSoft = Color(0x29F0705F)
+
+    /** Olive glow used behind hero headers on every screen. */
+    val heroBrush: Brush
+        get() = Brush.verticalGradient(listOf(Color(0xFF2C3610), Color(0xFF151A07), Bg))
 }
 
-private val colors = lightColorScheme(
-    primary = SW.Ink,
-    onPrimary = Color.White,
-    secondary = SW.Emerald,
-    onSecondary = Color.White,
-    tertiary = SW.Electric,
+private val colors = darkColorScheme(
+    primary = SW.Lime,
+    onPrimary = SW.OnLime,
+    secondary = SW.Mint,
+    onSecondary = SW.OnLime,
+    tertiary = SW.Amber,
     background = SW.Bg,
-    onBackground = SW.Ink,
+    onBackground = SW.Text,
     surface = SW.Card,
-    onSurface = SW.Ink,
-    surfaceVariant = SW.Field,
+    onSurface = SW.Text,
+    surfaceVariant = SW.Card2,
     onSurfaceVariant = SW.Subtle,
+    surfaceContainerHigh = SW.Card,
     outline = SW.Line,
-    error = SW.Coral,
+    error = SW.Danger,
 )
 
 private val base = FontFamily.Default
 
 private val typography = Typography(
-    displaySmall = TextStyle(fontFamily = base, fontWeight = FontWeight.SemiBold, fontSize = 34.sp, lineHeight = 40.sp, letterSpacing = (-0.8).sp),
+    displaySmall = TextStyle(fontFamily = base, fontWeight = FontWeight.Bold, fontSize = 40.sp, lineHeight = 46.sp, letterSpacing = (-1).sp),
     headlineMedium = TextStyle(fontFamily = base, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 34.sp, letterSpacing = (-0.6).sp),
     headlineSmall = TextStyle(fontFamily = base, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 30.sp, letterSpacing = (-0.4).sp),
     titleLarge = TextStyle(fontFamily = base, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp, letterSpacing = (-0.2).sp),
@@ -68,7 +86,7 @@ private val typography = Typography(
     titleSmall = TextStyle(fontFamily = base, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
     bodyLarge = TextStyle(fontFamily = base, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp),
     bodyMedium = TextStyle(fontFamily = base, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontFamily = base, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp),
+    bodySmall = TextStyle(fontFamily = base, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 17.sp),
     labelLarge = TextStyle(fontFamily = base, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
     labelMedium = TextStyle(fontFamily = base, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp),
     labelSmall = TextStyle(fontFamily = base, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp),
@@ -76,8 +94,8 @@ private val typography = Typography(
 
 private val shapes = Shapes(
     small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(28.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(26.dp),
 )
 
 @Composable

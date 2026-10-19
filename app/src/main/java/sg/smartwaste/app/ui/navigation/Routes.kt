@@ -3,7 +3,6 @@ package sg.smartwaste.app.ui.navigation
 import android.net.Uri
 
 object Routes {
-    const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val MAP = "map"
     const val SCAN = "scan"

@@ -246,7 +246,7 @@ private fun addLayers(s: Style) {
 
     s.addLayer(
         LineLayer(L_ROUTE_CASING, SRC_ROUTE).withProperties(
-            PropertyFactory.lineColor(android.graphics.Color.WHITE),
+            PropertyFactory.lineColor(SW.Bg.toArgb()),
             PropertyFactory.lineWidth(11f),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
@@ -254,7 +254,7 @@ private fun addLayers(s: Style) {
     )
     s.addLayer(
         LineLayer(L_ROUTE, SRC_ROUTE).withProperties(
-            PropertyFactory.lineColor(SW.Electric.toArgb()),
+            PropertyFactory.lineColor(SW.Lime.toArgb()),
             PropertyFactory.lineWidth(6.5f),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
@@ -263,9 +263,9 @@ private fun addLayers(s: Style) {
 
     val kindColor = Expression.match(
         Expression.get("kind"),
-        Expression.color(SW.Emerald.toArgb()),
+        Expression.color(SW.Lime.toArgb()),
         Expression.stop("buyer", Expression.color(SW.Amber.toArgb())),
-        Expression.stop("smart", Expression.color(SW.Electric.toArgb())),
+        Expression.stop("smart", Expression.color(SW.Mint.toArgb())),
     )
     val isSelected = Expression.eq(Expression.get("selected"), Expression.literal(true))
 
@@ -280,7 +280,7 @@ private fun addLayers(s: Style) {
         CircleLayer(L_PLACES, SRC_PLACES).withProperties(
             PropertyFactory.circleRadius(Expression.switchCase(isSelected, Expression.literal(11f), Expression.literal(7.5f))),
             PropertyFactory.circleColor(kindColor),
-            PropertyFactory.circleStrokeColor(android.graphics.Color.WHITE),
+            PropertyFactory.circleStrokeColor(SW.Bg.toArgb()),
             PropertyFactory.circleStrokeWidth(2.5f),
             PropertyFactory.circleOpacity(
                 Expression.switchCase(Expression.eq(Expression.get("full"), Expression.literal(true)), Expression.literal(0.45f), Expression.literal(1f))
@@ -290,15 +290,15 @@ private fun addLayers(s: Style) {
     s.addLayer(
         CircleLayer(L_USER_HALO, SRC_USER).withProperties(
             PropertyFactory.circleRadius(20f),
-            PropertyFactory.circleColor(SW.Electric.toArgb()),
+            PropertyFactory.circleColor(SW.Lime.toArgb()),
             PropertyFactory.circleOpacity(0.18f),
         )
     )
     s.addLayer(
         CircleLayer(L_USER, SRC_USER).withProperties(
             PropertyFactory.circleRadius(7.5f),
-            PropertyFactory.circleColor(SW.Electric.toArgb()),
-            PropertyFactory.circleStrokeColor(android.graphics.Color.WHITE),
+            PropertyFactory.circleColor(SW.Lime.toArgb()),
+            PropertyFactory.circleStrokeColor(SW.Text.toArgb()),
             PropertyFactory.circleStrokeWidth(3f),
         )
     )

@@ -107,26 +107,26 @@ fun ScanScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(SW.Navy, SW.Navy2)))
+            .background(SW.heroBrush)
             .statusBarsPadding(),
     ) {
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(12.dp))
             Text(
                 if (mode == ScanMode.ITEM) "Scan e-waste" else "Scan bin QR code",
-                color = Color.White, style = MaterialTheme.typography.headlineMedium,
+                color = SW.Text, style = MaterialTheme.typography.headlineMedium,
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 if (mode == ScanMode.ITEM) "Point your camera at the item. AI will identify it and guide you."
                 else "Point at the \"SCAN ME TO GET POINTS!\" QR on a SmartWaste bin.",
-                color = Color.White.copy(alpha = 0.65f), style = MaterialTheme.typography.bodyMedium,
+                color = SW.Text.copy(alpha = 0.65f), style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 40.dp),
             )
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScanMode.entries.forEach { m ->
-                    PillChip(m.label, selected = mode == m, onClick = { mode = m }, dark = true, selectedColor = SW.Electric,
+                    PillChip(m.label, selected = mode == m, onClick = { mode = m },
                         leading = if (m == ScanMode.ITEM) Icons.Rounded.CameraAlt else Icons.Rounded.QrCodeScanner)
                 }
             }
@@ -138,16 +138,17 @@ fun ScanScreen(
                     .fillMaxWidth()
                     .aspectRatio(0.82f)
                     .clip(RoundedCornerShape(34.dp))
-                    .background(SW.Navy3),
+                    .background(SW.Card)
+                    .border(1.dp, SW.Line, RoundedCornerShape(34.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (!camera.granted) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-                        Icon(Icons.Rounded.CameraAlt, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(42.dp))
+                        Icon(Icons.Rounded.CameraAlt, null, tint = SW.Text.copy(alpha = 0.7f), modifier = Modifier.size(42.dp))
                         Spacer(Modifier.height(10.dp))
-                        Text("Camera access is needed to scan", color = Color.White, textAlign = TextAlign.Center)
+                        Text("Camera access is needed to scan", color = SW.Text, textAlign = TextAlign.Center)
                         Spacer(Modifier.height(14.dp))
-                        PrimaryButton("Allow camera", { camera.request() }, container = SW.Electric, height = 48.dp)
+                        PrimaryButton("Allow camera", { camera.request() }, height = 48.dp)
                     }
                 } else if (s.analyzing && s.photoPath != null) {
                     AsyncImage(
@@ -165,23 +166,23 @@ fun ScanScreen(
                 } else {
                     QrCamera(onBinQr)
                 }
-                CornerBrackets(Modifier.fillMaxSize().padding(18.dp))
+                CornerBrackets(Modifier.fillMaxSize().padding(18.dp), color = SW.Lime)
             }
 
             Spacer(Modifier.height(18.dp))
             AnimatedVisibility(s.analyzing, enter = fadeIn(), exit = fadeOut()) {
                 Row(
-                    Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.1f)).padding(horizontal = 18.dp, vertical = 12.dp),
+                    Modifier.clip(RoundedCornerShape(50)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(50)).padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularProgressIndicator(Modifier.size(18.dp), color = SW.Lime, strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
-                    Text(s.stage, color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text(s.stage, color = SW.Text, style = MaterialTheme.typography.labelMedium)
                 }
             }
             s.error?.let {
                 Text(
-                    it, color = SW.Coral, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center,
+                    it, color = SW.Danger, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp).clickable { vm.clearError() },
                 )
             }
@@ -207,10 +208,10 @@ private fun ItemCamera(onCaptured: (File) -> Unit, onGallery: () -> Unit) {
             Box(
                 Modifier
                     .size(78.dp)
-                    .border(4.dp, Color.White, CircleShape)
+                    .border(4.dp, SW.Text, CircleShape)
                     .padding(7.dp)
                     .clip(CircleShape)
-                    .background(if (capturing) SW.Lime else SW.Electric)
+                    .background(if (capturing) SW.LimeDeep else SW.Lime)
                     .clickable(enabled = !capturing) {
                         capturing = true
                         controller.capture(
@@ -221,7 +222,7 @@ private fun ItemCamera(onCaptured: (File) -> Unit, onGallery: () -> Unit) {
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.CameraAlt, "Capture", tint = Color.White, modifier = Modifier.size(28.dp))
+                Icon(Icons.Rounded.CameraAlt, "Capture", tint = SW.OnLime, modifier = Modifier.size(28.dp))
             }
             GlassButton(if (torch) Icons.Rounded.FlashOn else Icons.Rounded.FlashOff, "Flash") {
                 torch = !torch
@@ -266,11 +267,11 @@ private fun QrCamera(onBinQr: (String) -> Unit) {
             if (found != null) {
                 Icon(Icons.Rounded.CheckCircle, null, tint = SW.Lime, modifier = Modifier.size(34.dp))
                 Spacer(Modifier.height(6.dp))
-                Text("QR code identified", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                Text("QR code identified", color = SW.Text, style = MaterialTheme.typography.titleSmall)
             } else {
                 Text(
                     if (invalid) "That's not a SmartWaste bin QR" else "Looking for a SmartWaste QR…",
-                    color = Color.White,
+                    color = SW.Text,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.4f)).padding(horizontal = 14.dp, vertical = 8.dp),
                 )
@@ -284,11 +285,11 @@ private fun GlassButton(icon: androidx.compose.ui.graphics.vector.ImageVector, l
     Box(
         Modifier.size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = Color.White, modifier = Modifier.size(22.dp)) }
+    ) { Icon(icon, label, tint = SW.Text, modifier = Modifier.size(22.dp)) }
 }
 
 @Composable
-fun CornerBrackets(modifier: Modifier = Modifier, color: Color = Color.White.copy(alpha = 0.9f)) {
+fun CornerBrackets(modifier: Modifier = Modifier, color: Color = SW.Text.copy(alpha = 0.9f)) {
     Canvas(modifier) {
         val len = 34.dp.toPx()
         val stroke = 4.dp.toPx()
@@ -307,7 +308,7 @@ private fun ScanLineOverlay() {
     val transition = rememberInfiniteTransition(label = "scan")
     val y by transition.animateFloat(0.05f, 0.95f, infiniteRepeatable(tween(1600), RepeatMode.Reverse), label = "y")
     Canvas(Modifier.fillMaxSize()) {
-        drawRect(Color(0x55071339))
+        drawRect(Color(0x550A0B07))
         val yy = size.height * y
         drawRect(
             Brush.verticalGradient(listOf(Color.Transparent, SW.Lime.copy(alpha = 0.35f), Color.Transparent), startY = yy - 60f, endY = yy + 60f),

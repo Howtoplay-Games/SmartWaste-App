@@ -47,6 +47,7 @@ android {
             config("SMARTWASTE_CHAT_MODELS", "google/gemini-3.5-flash,google/gemini-2.5-flash,openrouter/free")
                 .asBuildConfigString()
         )
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", config("SMARTWASTE_GOOGLE_WEB_CLIENT_ID").asBuildConfigString())
         buildConfigField(
             "String", "DATAGOV_EWASTE_DATASET_ID",
             config("SMARTWASTE_DATAGOV_EWASTE_DATASET_ID").asBuildConfigString()
@@ -120,4 +121,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.coil.compose)
     implementation(libs.maplibre.android)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 }

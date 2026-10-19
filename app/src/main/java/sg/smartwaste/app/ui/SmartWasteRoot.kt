@@ -1,6 +1,7 @@
 package sg.smartwaste.app.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -35,6 +36,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import sg.smartwaste.app.data.auth.SessionState
+import sg.smartwaste.app.ui.auth.AuthScreen
 import sg.smartwaste.app.ui.chat.ChatSheet
 import sg.smartwaste.app.ui.components.AiSupportFab
 import sg.smartwaste.app.ui.components.BarItem
@@ -44,7 +47,6 @@ import sg.smartwaste.app.ui.deposit.DepositScreen
 import sg.smartwaste.app.ui.home.HomeScreen
 import sg.smartwaste.app.ui.map.MapScreen
 import sg.smartwaste.app.ui.navigation.Routes
-import sg.smartwaste.app.ui.onboarding.OnboardingScreen
 import sg.smartwaste.app.ui.profile.ProfileScreen
 import sg.smartwaste.app.ui.rewards.RewardsScreen
 import sg.smartwaste.app.ui.scan.ResultScreen
@@ -63,42 +65,35 @@ private val barRoutes = barItems.map { it.route }.toSet()
 
 @Composable
 fun SmartWasteRoot(onReady: () -> Unit) {
-    val prefs = appContainer().prefs
-    val onboarded by prefs.onboarded.collectAsStateWithLifecycle(initialValue = null)
-    // Fix the start destination once so finishing onboarding doesn't rebuild the graph.
-    var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
-    if (startRoute == null) {
-        when (onboarded) {
-            null -> {
-                Box(Modifier.fillMaxSize().background(SW.Bg))
-                return
-            }
-            true -> startRoute = Routes.HOME
-            false -> startRoute = Routes.ONBOARDING
-        }
+    val auth = appContainer().auth
+    val session by auth.session.collectAsStateWithLifecycle(initialValue = SessionState.Loading)
+
+    if (session == SessionState.Loading) {
+        Box(Modifier.fillMaxSize().background(SW.Bg))
+        return
     }
-    val start = startRoute ?: Routes.HOME
     LaunchedEffect(Unit) { onReady() }
 
+    Crossfade(targetState = session is SessionState.SignedIn, label = "session") { signedIn ->
+        if (signedIn) MainApp() else AuthScreen()
+    }
+}
+
+@Composable
+private fun MainApp() {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route?.substringBefore("?")
     var chatOpen by rememberSaveable { mutableStateOf(false) }
     val showBar = route in barRoutes
-    val showFab = route != null && route != Routes.ONBOARDING
 
     Box(Modifier.fillMaxSize().background(SW.Bg)) {
         NavHost(
             navController = nav,
-            startDestination = start,
+            startDestination = Routes.HOME,
             enterTransition = { fadeIn() },
             exitTransition = { fadeOut() },
         ) {
-            composable(Routes.ONBOARDING) {
-                OnboardingScreen(onDone = {
-                    nav.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
-                })
-            }
             composable(Routes.HOME) {
                 HomeScreen(
                     onScan = { nav.switchTab(Routes.SCAN) },
@@ -177,11 +172,11 @@ fun SmartWasteRoot(onReady: () -> Unit) {
         }
 
         AnimatedVisibility(
-            visible = showFab && !chatOpen,
+            visible = route != null && !chatOpen,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
-                .padding(end = 18.dp, bottom = fabBottomPadding(route, showBar)),
+                .padding(end = 16.dp, bottom = fabBottomPadding(route, showBar)),
             enter = scaleIn() + fadeIn(),
             exit = scaleOut() + fadeOut(),
         ) {
@@ -196,7 +191,7 @@ fun SmartWasteRoot(onReady: () -> Unit) {
 private fun fabBottomPadding(route: String?, showBar: Boolean) = when {
     route == Routes.MAP -> 400.dp
     route == Routes.RESULT -> 150.dp
-    showBar -> 100.dp
+    showBar -> 104.dp
     else -> 20.dp
 }
 

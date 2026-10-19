@@ -73,7 +73,9 @@ object Prompts {
           (up to double points). Skipping verification earns fewer points. Duplicate codes earn no bonus.
         - SmartWaste smart-bin compartments: upper-left devices with batteries, lower-left appliances without batteries,
           upper-right chute small batteries, lower-right components. Insert one item at a time.
-        - Rewards tab: redeem points for vouchers. Profile tab: impact stats and history.
+        - Rewards tab: redeem points for vouchers. Profile tab: impact charts, goals, history, settings and Sign out.
+        - Accounts: sign up with name, email and password (8+ characters with a letter and a number) or continue with Google.
+          "Forgot Password?" sends a 5-digit code (shown on screen in this demo build). Points are saved per account on the device.
 
         Style: friendly, concise (under 120 words unless asked), use short bullet points for steps. If unsure about a specific
         location's current status, tell the user to check recycle.gov.sg. Politely decline topics unrelated to e-waste,
