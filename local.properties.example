@@ -1,0 +1,8 @@
+# Copy this file to `local.properties` (same folder) and fill in your values.
+# local.properties is git-ignored, so your key never gets committed.
+#
+# Android Studio usually creates local.properties for you with sdk.dir already set.
+# Just add the OPENROUTER_API_KEY line to it.
+
+# sdk.dir=/path/to/Android/Sdk
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
