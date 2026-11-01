@@ -101,7 +101,7 @@ fun ScanScreen(
     }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) ImageUtils.copyUriToFile(context, uri, "scan")?.let { vm.analyze(it) }
+        if (uri != null) vm.analyzePicked(context.applicationContext, uri)
     }
 
     Box(

@@ -30,7 +30,8 @@ class AiAuthException(message: String) : IOException(message)
  * Reliability strategy:
  *  1. Send the whole model chain via OpenRouter's `models` array so OpenRouter fails over
  *     server-side (rate limits, outages, moderation, context errors).
- *  2. If the request itself fails, retry each model individually client-side.
+ *  2. If OpenRouter returns an error, retry each model individually client-side. Network
+ *     failures and timeouts are not retried, because every model shares the connection.
  *  3. Callers fall back to on-device AI if everything fails.
  */
 class OpenRouterClient(
@@ -74,17 +75,11 @@ class OpenRouterClient(
             chain.forEach { add(listOf(it)) }
         }.distinct()
 
-        var lastError: Exception? = null
-        for (attempt in attempts) {
-            try {
-                return@withContext call(key, attempt, messages, temperature, maxTokens)
-            } catch (e: AiAuthException) {
-                throw e
-            } catch (e: Exception) {
-                lastError = e
-            }
+        // A bad key or a dead/slow connection fails every model the same way, so those stop
+        // the loop instead of waiting up to callTimeout once per attempt.
+        AiRetryPolicy.firstSuccess(attempts, isFatal = { it is AiAuthException }) { attempt ->
+            call(key, attempt, messages, temperature, maxTokens)
         }
-        throw lastError ?: IOException("AI request failed")
     }
 
     private fun call(

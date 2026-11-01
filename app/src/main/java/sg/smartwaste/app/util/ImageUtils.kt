@@ -18,7 +18,7 @@ object ImageUtils {
         return File(dir, "${prefix}_${System.currentTimeMillis()}.jpg")
     }
 
-    /** Copies a picked gallery image into app storage so it can be re-read later. */
+    /** Copies a picked gallery image into app storage so it can be re-read later. Blocking I/O. */
     fun copyUriToFile(context: Context, uri: Uri, prefix: String): File? = runCatching {
         val target = newPhotoFile(context, prefix)
         context.contentResolver.openInputStream(uri)?.use { input ->
@@ -27,7 +27,10 @@ object ImageUtils {
         target
     }.getOrNull()
 
-    /** Decodes a JPEG downscaled to [maxDim] on the long edge and rotated upright using EXIF. */
+    /**
+     * Decodes a JPEG downscaled to [maxDim] on the long edge and rotated upright using EXIF.
+     * CPU-heavy: call it off the main thread.
+     */
     fun loadUprightBitmap(file: File, maxDim: Int): Bitmap? = runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.path, bounds)
@@ -47,20 +50,29 @@ object ImageUtils {
                 true
             )
         } else decoded
+        // Free each intermediate as soon as it's replaced (a 12 MP photo decodes to ~12 MB).
+        if (scaled !== decoded) decoded.recycle()
 
         val rotation = runCatching { ExifInterface(file.path).rotationDegrees }.getOrDefault(0)
         if (rotation == 0) scaled
         else Bitmap.createBitmap(
             scaled, 0, 0, scaled.width, scaled.height,
             Matrix().apply { postRotate(rotation.toFloat()) }, true
-        )
+        ).also { if (it !== scaled) scaled.recycle() }
     }.getOrNull()
 
-    /** Encodes the photo as a base64 JPEG suitable for a vision-model data URL. */
+    /**
+     * Encodes the photo as a base64 JPEG suitable for a vision-model data URL.
+     * CPU-heavy: call it off the main thread.
+     */
     fun toBase64Jpeg(file: File, maxDim: Int = 1024, quality: Int = 82): String? {
         val bitmap = loadUprightBitmap(file, maxDim) ?: return null
-        val out = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
-        return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+        return try {
+            val out = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+        } finally {
+            bitmap.recycle()
+        }
     }
 }

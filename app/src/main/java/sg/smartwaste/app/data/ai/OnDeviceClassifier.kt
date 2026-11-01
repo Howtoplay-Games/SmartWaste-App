@@ -3,7 +3,9 @@ package sg.smartwaste.app.data.ai
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import sg.smartwaste.app.data.KnowledgeBase
 import sg.smartwaste.app.data.model.DetectionEngine
 import sg.smartwaste.app.data.model.DetectionResult
@@ -27,8 +29,18 @@ class OnDeviceClassifier {
     data class Label(val text: String, val confidence: Float)
 
     suspend fun labels(file: File): List<Label> {
-        val bitmap = ImageUtils.loadUprightBitmap(file, 1024) ?: return emptyList()
-        return labeler.process(InputImage.fromBitmap(bitmap, 0)).await()
+        // Decoding is CPU-heavy, so it runs off the main thread.
+        val bitmap = withContext(Dispatchers.Default) { ImageUtils.loadUprightBitmap(file, 1024) } ?: return emptyList()
+        val task = try {
+            labeler.process(InputImage.fromBitmap(bitmap, 0))
+        } catch (e: Exception) {
+            bitmap.recycle()
+            throw e
+        }
+        // Free the pixels when ML Kit is done with them. Cancelling the coroutine below only stops
+        // the waiting, so recycling in a `finally` could pull the bitmap out from under ML Kit.
+        task.addOnCompleteListener { bitmap.recycle() }
+        return task.await()
             .map { Label(it.text, it.confidence) }
             .sortedByDescending { it.confidence }
     }

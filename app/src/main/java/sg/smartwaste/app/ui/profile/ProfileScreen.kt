@@ -65,6 +65,7 @@ import sg.smartwaste.app.data.auth.SessionState
 import sg.smartwaste.app.data.db.DepositEntity
 import sg.smartwaste.app.data.model.EWasteCategory
 import sg.smartwaste.app.data.rewards.RewardsCatalog
+import sg.smartwaste.app.ui.components.bottomContentPadding
 import sg.smartwaste.app.ui.components.Avatar
 import sg.smartwaste.app.ui.components.CoverArt
 import sg.smartwaste.app.ui.components.DayCard
@@ -117,7 +118,7 @@ fun ProfileScreen() {
     val tier = RewardsCatalog.tierFor(lifetime)
     val next = RewardsCatalog.nextTier(lifetime)
 
-    LazyColumn(Modifier.fillMaxSize().background(SW.Bg), contentPadding = PaddingValues(bottom = 130.dp)) {
+    LazyColumn(Modifier.fillMaxSize().background(SW.Bg), contentPadding = PaddingValues(bottom = bottomContentPadding())) {
         // ------------------------------------------------------------ header
         item {
             Row(

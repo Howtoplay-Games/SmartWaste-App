@@ -26,8 +26,8 @@ class UserPrefs(private val context: Context) {
     /** Optional key entered in Settings. Overrides the build-time key from local.properties. */
     val apiKeyOverride: Flow<String> = context.dataStore.data.map { it[Keys.API_KEY].orEmpty() }
 
-    /** Dark basemap by default so the map matches the app's dark theme. */
-    val darkMap: Flow<Boolean> = context.dataStore.data.map { it[Keys.DARK_MAP] ?: true }
+    /** Light basemap by default so the map matches the app's light theme. */
+    val darkMap: Flow<Boolean> = context.dataStore.data.map { it[Keys.DARK_MAP] ?: false }
 
     suspend fun setSession(email: String?, remember: Boolean) {
         context.dataStore.edit {

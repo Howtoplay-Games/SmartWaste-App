@@ -61,6 +61,7 @@ import sg.smartwaste.app.data.db.RedemptionEntity
 import sg.smartwaste.app.data.rewards.Reward
 import sg.smartwaste.app.data.rewards.RewardCategory
 import sg.smartwaste.app.data.rewards.RewardsCatalog
+import sg.smartwaste.app.ui.components.bottomContentPadding
 import sg.smartwaste.app.ui.components.ArrowCircle
 import sg.smartwaste.app.ui.components.CoverArt
 import sg.smartwaste.app.ui.components.DayCard
@@ -98,7 +99,7 @@ fun RewardsScreen(onEarn: () -> Unit, onScan: () -> Unit) {
     val spent = redemptions.sumOf { it.cost }
     val cheapest = RewardsCatalog.rewards.minOf { it.cost }
 
-    LazyColumn(Modifier.fillMaxSize().background(SW.Bg), contentPadding = PaddingValues(bottom = 130.dp)) {
+    LazyColumn(Modifier.fillMaxSize().background(SW.Bg), contentPadding = PaddingValues(bottom = bottomContentPadding())) {
         // ------------------------------------------------------------ header
         item {
             Column(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 14.dp)) {

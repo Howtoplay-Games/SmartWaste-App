@@ -214,7 +214,8 @@ fun DepositScreen(
                     DepositStep.DONE -> DoneStep(s, onHome, onRewards)
                 }
             }
-            Spacer(Modifier.height(32.dp))
+            // Clears the AI button that floats over the bottom-right corner.
+            Spacer(Modifier.height(96.dp))
             Spacer(Modifier.navigationBarsPadding())
         }
     }
