@@ -11,12 +11,12 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,25 +38,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.Call
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Directions
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
-import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Layers
-import androidx.compose.material.icons.rounded.Map
-import androidx.compose.material.icons.rounded.MyLocation
-import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.NearMe
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Store
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -80,7 +82,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,17 +94,24 @@ import sg.smartwaste.app.data.model.PlaceWithDistance
 import sg.smartwaste.app.data.routing.Route
 import sg.smartwaste.app.data.routing.RouteStep
 import sg.smartwaste.app.data.routing.TravelMode
-import sg.smartwaste.app.ui.components.ArrowCircle
 import sg.smartwaste.app.ui.components.CircleIconButton
+import sg.smartwaste.app.ui.components.CoverArt
+import sg.smartwaste.app.ui.components.DragHandle
 import sg.smartwaste.app.ui.components.FillLevelBar
-import sg.smartwaste.app.ui.components.IconBadge
+import sg.smartwaste.app.ui.components.FrostTag
 import sg.smartwaste.app.ui.components.LOCATION_PERMISSIONS
+import sg.smartwaste.app.ui.components.ListingCard
 import sg.smartwaste.app.ui.components.PillChip
 import sg.smartwaste.app.ui.components.PrimaryButton
+import sg.smartwaste.app.ui.components.RatingChip
 import sg.smartwaste.app.ui.components.SecondaryButton
 import sg.smartwaste.app.ui.components.Tag
+import sg.smartwaste.app.ui.components.Tones
+import sg.smartwaste.app.ui.components.UnderlinedLink
 import sg.smartwaste.app.ui.components.appViewModel
 import sg.smartwaste.app.ui.components.icon
+import sg.smartwaste.app.ui.components.placeIcon
+import sg.smartwaste.app.ui.components.placeTones
 import sg.smartwaste.app.ui.components.rememberPermissionState
 import sg.smartwaste.app.ui.components.tint
 import sg.smartwaste.app.ui.theme.SW
@@ -182,12 +190,12 @@ fun MapScreen(
                 Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
                     Text(
                         s.message.orEmpty(),
-                        color = SW.Text,
+                        color = SW.OnInk,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier
                             .padding(horizontal = 24.dp)
                             .clip(RoundedCornerShape(50))
-                            .background(SW.Card2.copy(alpha = 0.96f))
+                            .background(SW.Ink)
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                     )
                 }
@@ -200,19 +208,19 @@ fun MapScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             CircleIconButton(
-                Icons.Rounded.MyLocation, "My location", vm::recenter,
+                Icons.Outlined.MyLocation, "My location", vm::recenter,
                 modifier = Modifier.shadow(8.dp, CircleShape),
-                container = if (s.following) SW.Lime else SW.Card,
-                content = if (s.following) SW.OnLime else SW.Text,
+                container = if (s.following) SW.Ink else SW.Surface,
+                content = if (s.following) SW.OnInk else SW.Text,
                 size = 48.dp,
             )
             CircleIconButton(
-                Icons.Rounded.Refresh, "Refresh places", vm::refresh,
+                Icons.Outlined.Refresh, "Refresh places", vm::refresh,
                 modifier = Modifier.shadow(8.dp, CircleShape), size = 48.dp,
             )
             if (s.loading) {
-                Box(Modifier.size(48.dp).clip(CircleShape).background(SW.Card), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = SW.Lime)
+                Box(Modifier.size(48.dp).clip(CircleShape).background(SW.Surface), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = SW.Ink)
                 }
             }
         }
@@ -223,7 +231,7 @@ fun MapScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = 94.dp),
+                .padding(bottom = 100.dp),
         ) {
             val panel = when {
                 s.nav.active -> "nav"
@@ -281,42 +289,42 @@ fun MapScreen(
 
 // ============================================================== top widgets
 
+/** Same white search pill as Home, with the charcoal map-style toggle inside it. */
 @Composable
 private fun MapSearchBar(query: String, onQuery: (String) -> Unit, dark: Boolean, onToggleDark: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier
-                .weight(1f)
-                .height(54.dp)
-                .shadow(10.dp, RoundedCornerShape(27.dp))
-                .clip(RoundedCornerShape(27.dp))
-                .background(SW.Card)
-                .border(1.dp, SW.Line, RoundedCornerShape(27.dp))
-                .padding(horizontal = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Rounded.Search, null, tint = SW.Subtle, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(10.dp))
-            Box(Modifier.weight(1f)) {
-                if (query.isEmpty()) Text("Search bins, buyers, malls…", color = SW.Muted, style = MaterialTheme.typography.bodyLarge)
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQuery,
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = SW.Text),
-                    cursorBrush = SolidColor(SW.Lime),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (query.isNotEmpty()) {
-                Icon(Icons.Rounded.Close, "Clear", tint = SW.Muted, modifier = Modifier.size(20.dp).clickable { onQuery("") })
-            }
+    Row(
+        Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .height(60.dp)
+            .shadow(10.dp, RoundedCornerShape(30.dp))
+            .clip(RoundedCornerShape(30.dp))
+            .background(SW.Surface)
+            .padding(start = 20.dp, end = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Search, null, tint = SW.Text, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Box(Modifier.weight(1f)) {
+            if (query.isEmpty()) Text("Search bins, buyers, malls", color = SW.Muted, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            BasicTextField(
+                value = query,
+                onValueChange = onQuery,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = SW.Text),
+                cursorBrush = SolidColor(SW.Ink),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
-        Spacer(Modifier.width(10.dp))
+        if (query.isNotEmpty()) {
+            Icon(
+                Icons.Rounded.Close, "Clear", tint = SW.Muted,
+                modifier = Modifier.padding(horizontal = 8.dp).size(20.dp).clickable { onQuery("") },
+            )
+        }
         CircleIconButton(
-            Icons.Rounded.Layers, if (dark) "Light map" else "Dark map", onToggleDark,
-            modifier = Modifier.shadow(10.dp, CircleShape),
-            container = if (dark) SW.Card else SW.Lime, content = if (dark) SW.Text else SW.OnLime, size = 54.dp,
+            Icons.Outlined.Layers, if (dark) "Light map" else "Dark map", onToggleDark,
+            container = SW.Ink, content = SW.OnInk, size = 46.dp,
         )
     }
 }
@@ -330,7 +338,7 @@ private fun FilterRow(
     onNearest: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         MapFilter.entries.forEach { f ->
@@ -343,32 +351,32 @@ private fun FilterRow(
         if (category != null) {
             PillChip(
                 "${category.shortTitle}  ✕", selected = true, onClick = onClearCategory, leading = category.icon,
-                selectedColor = SW.Lime, modifier = Modifier.shadow(4.dp, RoundedCornerShape(50)),
+                modifier = Modifier.shadow(4.dp, RoundedCornerShape(50)),
             )
         }
     }
 }
 
+/** Charcoal turn-by-turn banner, matching the dark bottom bar. */
 @Composable
 private fun NavBanner(step: RouteStep?, distanceM: Double, rerouting: Boolean, arrived: Boolean) {
     Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .shadow(16.dp, RoundedCornerShape(26.dp))
-            .clip(RoundedCornerShape(26.dp))
-            .background(SW.Card)
-            .border(1.dp, SW.Lime.copy(alpha = 0.3f), RoundedCornerShape(26.dp))
-            .padding(18.dp),
+            .shadow(16.dp, RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(28.dp))
+            .background(SW.Ink)
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(SW.Lime), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(54.dp).clip(CircleShape).background(SW.Surface), contentAlignment = Alignment.Center) {
             if (arrived || step?.maneuverType == "arrive") {
-                Icon(Icons.Rounded.Flag, null, tint = SW.OnLime, modifier = Modifier.size(28.dp))
+                Icon(Icons.Rounded.Flag, null, tint = SW.Ink, modifier = Modifier.size(26.dp))
             } else {
                 Icon(
-                    Icons.Rounded.ArrowUpward, null, tint = SW.OnLime,
-                    modifier = Modifier.size(30.dp).rotate(maneuverAngle(step?.maneuverType, step?.modifier)),
+                    Icons.Rounded.ArrowUpward, null, tint = SW.Ink,
+                    modifier = Modifier.size(28.dp).rotate(maneuverAngle(step?.maneuverType, step?.modifier)),
                 )
             }
         }
@@ -380,11 +388,11 @@ private fun NavBanner(step: RouteStep?, distanceM: Double, rerouting: Boolean, a
                     rerouting -> "Re-routing…"
                     else -> Geo.formatDistance(distanceM)
                 },
-                color = SW.Lime, style = MaterialTheme.typography.titleMedium,
+                color = SW.OnInk.copy(alpha = 0.7f), style = MaterialTheme.typography.titleSmall,
             )
             Text(
                 if (arrived) "You've reached your destination" else step?.instruction ?: "Follow the route",
-                color = SW.Text, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                color = SW.OnInk, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -415,29 +423,22 @@ private fun PlaceCarousel(
     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (showOnline) {
             items(online, key = { "online-${it.name}" }) { buyer ->
-                Column(
-                    Modifier
-                        .width(250.dp)
-                        .shadow(12.dp, RoundedCornerShape(26.dp))
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(SW.OliveDark)
-                        .border(1.dp, SW.Lime.copy(alpha = 0.2f), RoundedCornerShape(26.dp))
-                        .clickable { onOpenWeb(buyer.website) }
-                        .padding(16.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconBadge(Icons.Rounded.Language, SW.Lime, size = 38.dp)
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(buyer.name, color = SW.Text, style = MaterialTheme.typography.titleMedium)
-                            Text("Online · ${buyer.pays}", color = SW.Muted, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Text(buyer.description, color = SW.Subtle, style = MaterialTheme.typography.bodySmall, maxLines = 3)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Buys: ${buyer.buys}", color = SW.Lime, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                }
+                ListingCard(
+                    title = buyer.name,
+                    meta = "Online • ${buyer.buys}",
+                    chip = buyer.pays,
+                    chipNote = null,
+                    chipIcon = Icons.Outlined.Payments,
+                    onClick = { onOpenWeb(buyer.website) },
+                    modifier = Modifier.shadow(12.dp, RoundedCornerShape(26.dp)),
+                    width = 240.dp,
+                    coverHeight = 110.dp,
+                    description = buyer.description,
+                    coverAction = { FrostTag("Online", icon = Icons.Rounded.Language) },
+                    cover = {
+                        CoverArt(Tones.forKey(buyer.name), Modifier.matchParentSize(), seed = buyer.name.hashCode(), icon = Icons.Rounded.Language, iconSize = 40.dp)
+                    },
+                )
             }
         }
         items(places, key = { it.place.id }) { item ->
@@ -446,7 +447,7 @@ private fun PlaceCarousel(
         if (places.isEmpty() && !showOnline) {
             item {
                 Box(
-                    Modifier.width(300.dp).clip(RoundedCornerShape(26.dp)).background(SW.Card).padding(20.dp),
+                    Modifier.width(300.dp).shadow(12.dp, RoundedCornerShape(26.dp)).clip(RoundedCornerShape(26.dp)).background(SW.Surface).padding(20.dp),
                 ) { Text("No places match your filters.", color = SW.Subtle) }
             }
         }
@@ -456,41 +457,45 @@ private fun PlaceCarousel(
 @Composable
 private fun PlaceMiniCard(item: PlaceWithDistance, onClick: () -> Unit) {
     val p = item.place
-    val accent = placeAccent(p)
+    val fill = p.fillLevel
+    ListingCard(
+        title = p.name,
+        meta = "${Geo.formatDistance(item.distanceMeters)} • ${p.operator}",
+        chip = when {
+            p.type == PlaceType.BUYER -> p.buyer?.pays ?: "Get a quote"
+            fill != null -> "$fill% full"
+            else -> "${p.accepts.size} item types"
+        },
+        chipNote = if (p.type == PlaceType.BIN) p.source.label else p.buyer?.buys,
+        chipIcon = if (p.type == PlaceType.BUYER) Icons.Outlined.Payments else Icons.Outlined.Delete,
+        onClick = onClick,
+        modifier = Modifier.shadow(12.dp, RoundedCornerShape(26.dp)),
+        width = 240.dp,
+        coverHeight = 110.dp,
+        coverAction = {
+            FrostTag(if (p.isSmartBin) "Smart bin" else if (p.type == PlaceType.BUYER) "Buyer" else "Bin")
+        },
+        cover = {
+            CoverArt(placeTones(p), Modifier.matchParentSize(), seed = p.id.hashCode(), icon = placeIcon(p), iconSize = 40.dp)
+        },
+    )
+}
+
+/** White sheet card with a grabber, used for place details, routes and navigation. */
+@Composable
+private fun SheetCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier
-            .width(250.dp)
-            .shadow(12.dp, RoundedCornerShape(26.dp))
-            .clip(RoundedCornerShape(26.dp))
-            .background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(26.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .shadow(18.dp, RoundedCornerShape(32.dp))
+            .clip(RoundedCornerShape(32.dp))
+            .background(SW.Surface)
+            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(placeIcon(p), accent, size = 40.dp)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(p.name, style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(p.operator, style = MaterialTheme.typography.labelSmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (p.type == PlaceType.BIN) {
-            FillLevelBar(p.fillLevel)
-        } else {
-            Text(p.buyer?.pays ?: "Get a quote", style = MaterialTheme.typography.labelSmall, color = SW.Amber, maxLines = 1)
-            Spacer(Modifier.height(4.dp))
-            Text(p.buyer?.buys.orEmpty(), style = MaterialTheme.typography.labelSmall, color = SW.Subtle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Tag(Geo.formatDistance(item.distanceMeters), SW.Card2, SW.Text, icon = Icons.Rounded.NearMe)
-            Spacer(Modifier.width(6.dp))
-            Tag(p.source.label, accent.copy(alpha = 0.12f), accent)
-            Spacer(Modifier.weight(1f))
-            ArrowCircle(size = 34.dp)
-        }
+        DragHandle(Modifier.align(Alignment.CenterHorizontally))
+        Spacer(Modifier.height(14.dp))
+        content()
     }
 }
 
@@ -504,31 +509,31 @@ private fun PlaceDetailCard(
     onVerify: () -> Unit,
 ) {
     val p = item.place
-    val accent = placeAccent(p)
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .shadow(18.dp, RoundedCornerShape(30.dp))
-            .clip(RoundedCornerShape(30.dp))
-            .background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(30.dp))
-            .padding(20.dp),
-    ) {
+    SheetCard {
         Row(verticalAlignment = Alignment.Top) {
-            IconBadge(placeIcon(p), accent, size = 50.dp)
-            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(p.name, style = MaterialTheme.typography.titleLarge, color = SW.Text, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(p.address, style = MaterialTheme.typography.bodySmall, color = SW.Subtle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(20.dp).clip(CircleShape).background(placeTones(p).mid), contentAlignment = Alignment.Center) {
+                        Icon(placeIcon(p), null, tint = Color.White, modifier = Modifier.size(12.dp))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(p.operator, style = MaterialTheme.typography.bodyMedium, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
-            CircleIconButton(Icons.Rounded.Close, "Close", onClose, container = SW.Card2, size = 36.dp, iconSize = 18.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                CircleIconButton(Icons.Rounded.Close, "Close", onClose, container = SW.SurfaceAlt, size = 36.dp, iconSize = 18.dp)
+                Spacer(Modifier.height(8.dp))
+                RatingChip(Geo.formatDistance(item.distanceMeters), icon = Icons.Rounded.NearMe)
+            }
         }
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            Tag(Geo.formatDistance(item.distanceMeters), SW.Card2, SW.Text, icon = Icons.Rounded.NearMe)
-            p.openingHours?.let { Tag(it, SW.Card2, SW.Text, icon = Icons.Rounded.Schedule) }
-            Tag(p.operator, accent.copy(alpha = 0.12f), accent)
+        Spacer(Modifier.height(10.dp))
+        Text(p.address, style = MaterialTheme.typography.bodyMedium, color = SW.Subtle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        p.openingHours?.let {
+            Spacer(Modifier.height(8.dp))
+            Tag(it, SW.SurfaceAlt, SW.Text, icon = Icons.Rounded.Schedule)
         }
         Spacer(Modifier.height(14.dp))
         if (p.type == PlaceType.BIN) {
@@ -543,30 +548,32 @@ private fun PlaceDetailCard(
             b.notes?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = SW.Subtle) }
             if (b.pickup) {
                 Spacer(Modifier.height(6.dp))
-                Tag("Pickup available", SW.LimeSoft, SW.Lime)
+                Tag("Pickup available", SW.SuccessSoft, SW.Success)
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Text("Accepts", style = MaterialTheme.typography.labelMedium, color = SW.Muted)
+        Spacer(Modifier.height(14.dp))
+        Text("Accepts", style = MaterialTheme.typography.bodySmall, color = SW.Muted)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
             p.accepts.forEach { c -> Tag(c.shortTitle, c.tint.copy(alpha = 0.12f), c.tint, icon = c.icon) }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(18.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PrimaryButton("Directions", onDirections, Modifier.weight(1f), leading = Icons.Rounded.Directions)
+            PrimaryButton("Directions", onDirections, Modifier.weight(1f), leading = Icons.Outlined.Directions)
             if (p.phone != null) {
                 Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Rounded.Call, "Call", onCall, container = SW.Card2, size = 58.dp)
+                CircleIconButton(Icons.Outlined.Call, "Call", onCall, container = SW.SurfaceAlt, size = 56.dp)
             }
             if (p.website != null) {
                 Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Rounded.Language, "Website", onWeb, container = SW.Card2, size = 58.dp)
+                CircleIconButton(Icons.Outlined.Language, "Website", onWeb, container = SW.SurfaceAlt, size = 56.dp)
             }
         }
         if (p.type == PlaceType.BIN) {
-            Spacer(Modifier.height(10.dp))
-            SecondaryButton("I'm here: verify & earn points", onVerify, Modifier.fillMaxWidth(), leading = Icons.Rounded.VerifiedUser)
+            Spacer(Modifier.height(12.dp))
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                UnderlinedLink("I'm here: verify & earn points", onVerify, style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }
@@ -583,47 +590,37 @@ private fun RouteCard(
     onClose: () -> Unit,
 ) {
     var showSteps by rememberSaveable { mutableStateOf(false) }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .shadow(18.dp, RoundedCornerShape(30.dp))
-            .clip(RoundedCornerShape(30.dp))
-            .background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(30.dp))
-            .padding(20.dp),
-    ) {
+    SheetCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 if (loading || route == null) {
                     Text("Finding the best route…", style = MaterialTheme.typography.titleLarge, color = SW.Text)
                 } else {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text(Geo.formatDuration(route.durationSeconds), style = MaterialTheme.typography.headlineMedium, color = SW.Lime)
+                        Text(Geo.formatDuration(route.durationSeconds), style = MaterialTheme.typography.headlineMedium, color = SW.Text)
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "· ${Geo.formatDistance(route.distanceMeters)}",
-                            style = MaterialTheme.typography.titleMedium, color = SW.Subtle,
+                            style = MaterialTheme.typography.titleMedium, color = SW.Muted,
                             modifier = Modifier.padding(bottom = 3.dp),
                         )
                     }
                 }
-                Text("to ${place?.name ?: "destination"}", style = MaterialTheme.typography.bodySmall, color = SW.Subtle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("to ${place?.name ?: "destination"}", style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            CircleIconButton(Icons.Rounded.Close, "Close", onClose, container = SW.Card2, size = 36.dp, iconSize = 18.dp)
+            CircleIconButton(Icons.Rounded.Close, "Close", onClose, container = SW.SurfaceAlt, size = 36.dp, iconSize = 18.dp)
         }
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TravelMode.entries.forEach { m ->
-                PillChip(m.label, selected = m == mode, onClick = { onMode(m) }, leading = modeIcon(m), selectedColor = SW.Lime)
+                PillChip(m.label, selected = m == mode, onClick = { onMode(m) }, leading = modeIcon(m), idleColor = SW.SurfaceAlt, small = true)
             }
         }
         if (route != null && !loading) {
             Spacer(Modifier.height(12.dp))
-            Text(
+            UnderlinedLink(
                 if (showSteps) "Hide steps" else "${route.steps.size} steps · tap to preview",
-                style = MaterialTheme.typography.labelMedium, color = SW.Lime,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showSteps = !showSteps }.padding(vertical = 4.dp),
+                { showSteps = !showSteps },
             )
             AnimatedVisibility(showSteps) {
                 LazyColumn(Modifier.heightIn(max = 200.dp).padding(top = 6.dp)) {
@@ -634,14 +631,14 @@ private fun RouteCard(
                 }
             }
             if (route.isEstimate) {
-                Text("Approximate straight-line estimate (routing offline)", style = MaterialTheme.typography.labelSmall, color = SW.Amber)
+                Text("Approximate straight-line estimate (routing offline)", style = MaterialTheme.typography.labelSmall, color = SW.Warn)
             }
         }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
         Row {
-            PrimaryButton("Start", onStart, Modifier.weight(1f), enabled = route != null && !loading, leading = Icons.Rounded.Navigation)
+            PrimaryButton("Start", onStart, Modifier.weight(1f), enabled = route != null && !loading, leading = Icons.Outlined.Navigation)
             Spacer(Modifier.width(10.dp))
-            SecondaryButton("Google Maps", onExternal, Modifier.weight(1f), leading = Icons.Rounded.Map)
+            SecondaryButton("Google Maps", onExternal, Modifier.weight(1f), leading = Icons.Outlined.Map)
         }
     }
 }
@@ -649,9 +646,9 @@ private fun RouteCard(
 @Composable
 private fun StepRow(step: RouteStep) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(32.dp).clip(CircleShape).background(SW.LimeSoft), contentAlignment = Alignment.Center) {
-            if (step.maneuverType == "arrive") Icon(Icons.Rounded.Flag, null, tint = SW.Lime, modifier = Modifier.size(16.dp))
-            else Icon(Icons.Rounded.ArrowUpward, null, tint = SW.Lime, modifier = Modifier.size(16.dp).rotate(maneuverAngle(step.maneuverType, step.modifier)))
+        Box(Modifier.size(32.dp).clip(CircleShape).background(SW.SurfaceAlt), contentAlignment = Alignment.Center) {
+            if (step.maneuverType == "arrive") Icon(Icons.Rounded.Flag, null, tint = SW.Ink, modifier = Modifier.size(16.dp))
+            else Icon(Icons.Rounded.ArrowUpward, null, tint = SW.Ink, modifier = Modifier.size(16.dp).rotate(maneuverAngle(step.maneuverType, step.modifier)))
         }
         Spacer(Modifier.width(10.dp))
         Text(step.instruction, style = MaterialTheme.typography.bodyMedium, color = SW.Text, modifier = Modifier.weight(1f))
@@ -670,55 +667,31 @@ private fun NavBottomCard(
     val eta = remember(progress.remainingS) {
         SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis() + (progress.remainingS * 1000).toLong()))
     }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .shadow(18.dp, RoundedCornerShape(30.dp))
-            .clip(RoundedCornerShape(30.dp))
-            .background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(30.dp))
-            .padding(20.dp),
-    ) {
+    SheetCard {
         if (progress.arrived) {
             Text("You've arrived 🎉", style = MaterialTheme.typography.headlineSmall, color = SW.Text)
             Text(place?.name.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = SW.Subtle)
             Spacer(Modifier.height(14.dp))
             if (place?.type == PlaceType.BIN) {
-                PrimaryButton("Verify deposit & earn points", onVerify, Modifier.fillMaxWidth(), leading = Icons.Rounded.VerifiedUser)
+                PrimaryButton("Verify deposit & earn points", onVerify, Modifier.fillMaxWidth(), leading = Icons.Outlined.TaskAlt)
                 Spacer(Modifier.height(10.dp))
             }
             SecondaryButton("End navigation", onEnd, Modifier.fillMaxWidth())
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(Geo.formatDuration(progress.remainingS), style = MaterialTheme.typography.headlineMedium, color = SW.Lime)
-                    Text("${Geo.formatDistance(progress.remainingM)} · arrive $eta", style = MaterialTheme.typography.bodyMedium, color = SW.Subtle)
+                    Text(Geo.formatDuration(progress.remainingS), style = MaterialTheme.typography.headlineMedium, color = SW.Text)
+                    Text("${Geo.formatDistance(progress.remainingM)} · arrive $eta", style = MaterialTheme.typography.bodyMedium, color = SW.Muted)
                 }
-                CircleIconButton(Icons.Rounded.Map, "Open in Google Maps", onExternal, container = SW.Card2, size = 50.dp)
+                CircleIconButton(Icons.Outlined.Map, "Open in Google Maps", onExternal, container = SW.SurfaceAlt, size = 50.dp)
                 Spacer(Modifier.width(10.dp))
-                Box(
-                    Modifier.height(50.dp).clip(RoundedCornerShape(25.dp)).background(SW.Danger).clickable(onClick = onEnd).padding(horizontal = 22.dp),
-                    contentAlignment = Alignment.Center,
-                ) { Text("End", color = SW.OnLime, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
+                PrimaryButton("End", onEnd, height = 50.dp, container = SW.Danger, contentColor = Color.White)
             }
         }
     }
 }
 
 // ================================================================= helpers
-
-private fun placeAccent(p: Place): Color = when {
-    p.isSmartBin -> SW.Mint
-    p.type == PlaceType.BUYER -> SW.Amber
-    else -> SW.Lime
-}
-
-private fun placeIcon(p: Place): ImageVector = when {
-    p.type == PlaceType.BUYER -> Icons.Rounded.Store
-    p.isSmartBin -> Icons.Rounded.VerifiedUser
-    else -> (p.accepts.firstOrNull() ?: EWasteCategory.DEVICE_WITH_BATTERY).icon
-}
 
 private fun modeIcon(m: TravelMode): ImageVector = when (m) {
     TravelMode.WALK -> Icons.AutoMirrored.Rounded.DirectionsWalk

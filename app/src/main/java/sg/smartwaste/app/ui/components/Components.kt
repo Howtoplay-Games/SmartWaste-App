@@ -1,23 +1,29 @@
 package sg.smartwaste.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -25,7 +31,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -46,15 +57,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,17 +79,18 @@ import sg.smartwaste.app.ui.theme.SW
 
 // ====================================================================== buttons
 
+/** Round icon button. White on the grey canvas by default (back, save, call…). */
 @Composable
 fun CircleIconButton(
     icon: ImageVector,
     contentDescription: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    container: Color = SW.Card2,
+    container: Color = SW.Surface,
     content: Color = SW.Text,
     size: Dp = 44.dp,
     iconSize: Dp = 20.dp,
-    bordered: Boolean = true,
+    bordered: Boolean = false,
 ) {
     Box(
         modifier
@@ -89,7 +105,30 @@ fun CircleIconButton(
     }
 }
 
-/** Lime pill button (the "Sign in" / "Send Code" style). */
+/** Frosted-glass round button for use on top of photos and cover art. */
+@Composable
+fun FrostedCircleButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp,
+    iconSize: Dp = 20.dp,
+) {
+    Box(
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(SW.Frost)
+            .border(1.dp, SW.FrostLine, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription, tint = Color.White, modifier = Modifier.size(iconSize))
+    }
+}
+
+/** Charcoal pill button (the "Book a tour" style). */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -97,34 +136,35 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
-    container: Color = SW.Lime,
-    contentColor: Color = SW.OnLime,
+    container: Color = SW.Ink,
+    contentColor: Color = SW.OnInk,
     leading: ImageVector? = null,
-    height: Dp = 54.dp,
+    height: Dp = 56.dp,
 ) {
-    val bg = if (enabled) container else container.copy(alpha = 0.3f)
+    val bg = if (enabled) container else SW.Track
+    val fg = if (enabled) contentColor else SW.Muted
     Row(
         modifier
             .height(height)
             .clip(RoundedCornerShape(height / 2))
             .background(bg)
             .clickable(enabled = enabled && !loading, onClick = onClick)
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
         if (loading) {
-            CircularProgressIndicator(color = contentColor, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+            CircularProgressIndicator(color = fg, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
         } else if (leading != null) {
-            Icon(leading, null, tint = contentColor, modifier = Modifier.size(18.dp))
+            Icon(leading, null, tint = fg, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, color = contentColor, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        Text(text, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-/** Dark outlined pill button (the "Google" / "Apple" style). */
+/** White pill button with a hairline border. */
 @Composable
 fun SecondaryButton(
     text: String,
@@ -132,37 +172,42 @@ fun SecondaryButton(
     modifier: Modifier = Modifier,
     leading: ImageVector? = null,
     enabled: Boolean = true,
-    height: Dp = 54.dp,
+    height: Dp = 56.dp,
     leadingPainter: Int? = null,
+    container: Color = SW.Surface,
 ) {
     Row(
         modifier
             .height(height)
             .clip(RoundedCornerShape(height / 2))
-            .background(SW.Card)
+            .background(container)
             .border(1.dp, SW.Line, RoundedCornerShape(height / 2))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
+        val fg = if (enabled) SW.Text else SW.Muted
         if (leadingPainter != null) {
             Image(painterResource(leadingPainter), null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         } else if (leading != null) {
-            Icon(leading, null, tint = SW.Text, modifier = Modifier.size(18.dp))
+            Icon(leading, null, tint = fg, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, color = if (enabled) SW.Text else SW.Muted, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        Text(text, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
+/** Dark round arrow button used at the corner of listing cards. */
 @Composable
 fun ArrowCircle(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
-    container: Color = SW.Lime,
-    content: Color = SW.OnLime,
+    container: Color = SW.Ink,
+    content: Color = SW.OnInk,
+    icon: ImageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+    contentDescription: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     Box(
@@ -173,12 +218,38 @@ fun ArrowCircle(
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = content, modifier = Modifier.size(size * 0.45f))
+        Icon(icon, contentDescription, tint = content, modifier = Modifier.size(size * 0.48f))
+    }
+}
+
+/** Translucent dark pill with a white chevron button ("See more" on hero cards). */
+@Composable
+fun SeeMorePill(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .clip(RoundedCornerShape(29.dp))
+            .background(SW.Smoke)
+            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(29.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Text(
+            text, color = Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1,
+            modifier = Modifier.align(Alignment.Center).padding(horizontal = 60.dp),
+        )
+        Box(
+            Modifier.align(Alignment.CenterEnd).padding(end = 6.dp).size(46.dp).clip(CircleShape).background(Color.White),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = SW.Ink, modifier = Modifier.size(26.dp))
+        }
     }
 }
 
 // ====================================================================== chips
 
+/** Rounded chip. Selected chips are charcoal; idle chips are white (or grey inside sheets). */
 @Composable
 fun PillChip(
     text: String,
@@ -186,49 +257,48 @@ fun PillChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leading: ImageVector? = null,
-    selectedColor: Color = SW.Lime,
+    idleColor: Color = SW.Surface,
+    small: Boolean = false,
 ) {
-    val bg by animateColorAsState(if (selected) selectedColor else SW.Card, label = "chipBg")
-    val fg = if (selected) SW.OnLime else SW.Text
+    val bg by animateColorAsState(if (selected) SW.Ink else idleColor, label = "chipBg")
+    val fg by animateColorAsState(if (selected) SW.OnInk else SW.Subtle, label = "chipFg")
     Row(
         modifier
             .clip(RoundedCornerShape(50))
             .background(bg)
-            .then(if (!selected) Modifier.border(1.dp, SW.Line, RoundedCornerShape(50)) else Modifier)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = if (small) 14.dp else 18.dp, vertical = if (small) 8.dp else 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leading != null) {
             Icon(leading, null, tint = fg, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
-        Text(text, color = fg, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Text(
+            text, color = fg, maxLines = 1,
+            style = if (small) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 
-/** Month / Quarter / Year style segmented control. */
+/** Scrollable row of tab chips ("Tour schedule · Accommodation · Booking details" style). */
 @Composable
-fun <T> SegmentedControl(
+fun <T> TabChips(
     options: List<T>,
     selected: T,
     label: (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    idleColor: Color = SW.SurfaceAlt,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    small: Boolean = true,
 ) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(50)).padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(contentPadding),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         options.forEach { o ->
-            val sel = o == selected
-            val bg by animateColorAsState(if (sel) SW.Lime else Color.Transparent, label = "seg")
-            Box(
-                Modifier.weight(1f).clip(RoundedCornerShape(50)).background(bg).clickable { onSelect(o) }.padding(vertical = 11.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(label(o), color = if (sel) SW.OnLime else SW.Muted, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-            }
+            PillChip(label(o), selected = o == selected, onClick = { onSelect(o) }, idleColor = idleColor, small = small)
         }
     }
 }
@@ -250,7 +320,70 @@ fun Tag(text: String, background: Color, foreground: Color, modifier: Modifier =
 /** Convenience: tinted tag using a palette colour. */
 @Composable
 fun TintTag(text: String, tint: Color, modifier: Modifier = Modifier, icon: ImageVector? = null) =
-    Tag(text, tint.copy(alpha = 0.14f), tint, modifier, icon)
+    Tag(text, tint.copy(alpha = 0.12f), tint, modifier, icon)
+
+/** Frosted tag for use on top of photos and cover art. */
+@Composable
+fun FrostTag(text: String, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+    Row(
+        modifier
+            .clip(RoundedCornerShape(50))
+            .background(SW.Frost)
+            .border(1.dp, SW.FrostLine, RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, null, tint = Color.White, modifier = Modifier.size(13.dp))
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(text, color = Color.White, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Outlined "☆ 5.0" chip. [onImage] switches to white-on-frost for photos. */
+@Composable
+fun RatingChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Rounded.StarBorder,
+    onImage: Boolean = false,
+) {
+    val fg = if (onImage) Color.White else SW.Text
+    Row(
+        modifier
+            .clip(RoundedCornerShape(50))
+            .then(if (onImage) Modifier.background(SW.Frost) else Modifier)
+            .border(1.dp, if (onImage) SW.FrostLine else SW.Line, RoundedCornerShape(50))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = fg, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(text, color = fg, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+    }
+}
+
+/** Underlined text link ("See all", "Read more", "143 reviews"). */
+@Composable
+fun UnderlinedLink(
+    text: String,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    color: Color = SW.Text,
+    style: TextStyle = MaterialTheme.typography.labelMedium,
+) {
+    Text(
+        text,
+        color = color,
+        style = style,
+        textDecoration = TextDecoration.Underline,
+        maxLines = 1,
+        modifier = modifier
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 2.dp),
+    )
+}
 
 // ====================================================================== layout
 
@@ -260,93 +393,196 @@ fun SectionHeader(
     modifier: Modifier = Modifier,
     action: String? = null,
     onAction: (() -> Unit)? = null,
+    horizontalPadding: Dp = 20.dp,
 ) {
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge, color = SW.Text)
+        Text(title, style = MaterialTheme.typography.titleLarge, color = SW.Text, modifier = Modifier.weight(1f, fill = false))
         if (action != null && onAction != null) {
-            Text(
-                action,
-                style = MaterialTheme.typography.labelMedium,
-                color = SW.Lime,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAction).padding(6.dp),
-            )
+            Spacer(Modifier.width(12.dp))
+            UnderlinedLink(action, onAction)
         }
     }
 }
 
+/** Small grey grabber at the top of sheets. */
 @Composable
-fun SoftCard(
-    modifier: Modifier = Modifier,
-    color: Color = SW.Card,
-    corner: Dp = 22.dp,
-    onClick: (() -> Unit)? = null,
-    padding: Dp = 16.dp,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(corner))
-            .background(color)
-            .border(1.dp, SW.Line, RoundedCornerShape(corner))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(padding),
-        content = content,
-    )
+fun DragHandle(modifier: Modifier = Modifier) {
+    Box(modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(SW.Line))
 }
 
 /**
- * Hero header used at the top of every main screen: olive glow gradient with a faint dot
- * texture, ending in the rounded top edge of the content sheet (second reference layout).
+ * Centered title bar with round buttons on both sides (the "Iconic Brazil" header).
+ * [trailing] fills the right-hand slot.
  */
 @Composable
-fun HeroHeader(
+fun ScreenHeader(
+    title: String,
     modifier: Modifier = Modifier,
-    sheetEdge: Boolean = true,
-    content: @Composable ColumnScope.() -> Unit,
+    subtitle: String? = null,
+    onBack: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
-    Box(modifier.fillMaxWidth().background(SW.heroBrush)) {
-        DotTexture(Modifier.matchParentSize())
-        Column(Modifier.fillMaxWidth().padding(bottom = if (sheetEdge) 40.dp else 16.dp), content = content)
-        if (sheetEdge) {
-            Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(26.dp)
-                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(SW.Sheet)
-            )
+    Row(
+        modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            if (onBack != null) CircleIconButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", onBack, iconSize = 24.dp)
         }
-    }
-}
-
-@Composable
-private fun DotTexture(modifier: Modifier) {
-    Canvas(modifier) {
-        val step = 16.dp.toPx()
-        val r = 1.dp.toPx()
-        var y = step / 2
-        while (y < size.height * 0.7f) {
-            var x = step / 2
-            val alpha = 0.10f * (1f - y / (size.height * 0.7f))
-            while (x < size.width) {
-                drawCircle(SW.Lime.copy(alpha = alpha), r, Offset(x, y))
-                x += step
+        Column(Modifier.weight(1f).padding(horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(title, style = MaterialTheme.typography.titleLarge, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            y += step
+        }
+        Box(Modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp), contentAlignment = Alignment.Center) {
+            trailing?.invoke()
         }
     }
 }
 
-/** The "Daily Average · Transactions · Largest Expense" strip from the second reference. */
+/**
+ * The itinerary "Day" card: thumbnail, grey overline and title, with an optional
+ * chevron that expands labelled detail blocks (see [DetailBlock]).
+ */
 @Composable
-fun StatsStrip(items: List<Triple<String, String, String>>, modifier: Modifier = Modifier) {
+fun DayCard(
+    overline: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    expanded: Boolean = false,
+    onToggle: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    thumbnail: @Composable BoxScope.() -> Unit,
+    details: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    val shape = RoundedCornerShape(22.dp)
+    val open = expanded && details != null
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (open) SW.SurfaceAlt else SW.Surface)
+            .border(1.dp, if (open) SW.SurfaceAlt else SW.Line, shape)
+            .then(if (onToggle != null) Modifier.clickable(onClick = onToggle) else Modifier)
+            .animateContentSize()
+            .padding(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(width = 72.dp, height = 58.dp).clip(RoundedCornerShape(14.dp)), content = thumbnail)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(overline, style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+            when {
+                trailing != null -> {
+                    Spacer(Modifier.width(8.dp))
+                    trailing()
+                }
+                onToggle != null && details != null -> Icon(
+                    if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, null,
+                    tint = SW.Text, modifier = Modifier.padding(horizontal = 6.dp).size(22.dp),
+                )
+            }
+        }
+        if (open) {
+            Spacer(Modifier.height(14.dp))
+            Column(Modifier.padding(horizontal = 6.dp).padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                details?.invoke(this)
+            }
+        }
+    }
+}
+
+/** "Morning / Arrive in Rio…" style label + text pair. */
+@Composable
+fun DetailBlock(label: String, text: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = SW.Muted)
+        Spacer(Modifier.height(2.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = SW.Text)
+    }
+}
+
+/**
+ * The "Upcoming tours" card: rounded cover with a corner action, title, meta line,
+ * a rating-style chip and a dark arrow button.
+ */
+@Composable
+fun ListingCard(
+    title: String,
+    meta: String,
+    chip: String,
+    chipNote: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    chipIcon: ImageVector = Icons.Rounded.StarBorder,
+    width: Dp = 220.dp,
+    coverHeight: Dp = 140.dp,
+    description: String? = null,
+    coverAction: (@Composable BoxScope.() -> Unit)? = null,
+    cover: @Composable BoxScope.() -> Unit,
+) {
+    Column(
+        modifier
+            .width(width)
+            .clip(RoundedCornerShape(26.dp))
+            .background(SW.Surface)
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+    ) {
+        Box(Modifier.fillMaxWidth().height(coverHeight).clip(RoundedCornerShape(20.dp))) {
+            cover()
+            if (coverAction != null) {
+                Box(Modifier.align(Alignment.TopEnd).padding(10.dp)) { coverAction() }
+            }
+        }
+        Column(Modifier.padding(start = 8.dp, end = 4.dp, top = 12.dp, bottom = 4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(2.dp))
+            Text(meta, style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (description != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall, color = SW.Subtle, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(chipIcon, null, tint = SW.Text, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        chip, style = MaterialTheme.typography.labelMedium, color = SW.Text, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (chipNote != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            chipNote, style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                ArrowCircle(size = 42.dp, contentDescription = "Open $title", onClick = onClick)
+            }
+        }
+    }
+}
+
+/** Label / value columns separated by hairlines, on a grey rounded strip. */
+@Composable
+fun StatsStrip(items: List<Triple<String, String, String>>, modifier: Modifier = Modifier, color: Color = SW.SurfaceAlt) {
     Row(
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color.White.copy(alpha = 0.06f))
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(color)
             .padding(vertical = 14.dp),
     ) {
         items.forEachIndexed { i, (label, value, sub) ->
@@ -355,16 +591,16 @@ fun StatsStrip(items: List<Triple<String, String, String>>, modifier: Modifier =
                 Spacer(Modifier.height(4.dp))
                 Text(value, color = SW.Text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
                 Spacer(Modifier.height(2.dp))
-                Text(sub, color = SW.Lime, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(sub, color = SW.Muted, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (i < items.lastIndex) Box(Modifier.width(1.dp).height(46.dp).background(Color.White.copy(alpha = 0.08f)).align(Alignment.CenterVertically))
+            if (i < items.lastIndex) Box(Modifier.width(1.dp).height(46.dp).background(SW.Line).align(Alignment.CenterVertically))
         }
     }
 }
 
-/** Smooth area chart (spending-trend style) in lime. */
+/** Smooth area chart in charcoal. */
 @Composable
-fun TrendChart(values: List<Float>, modifier: Modifier = Modifier, color: Color = SW.Lime) {
+fun TrendChart(values: List<Float>, modifier: Modifier = Modifier, color: Color = SW.Ink) {
     Canvas(modifier) {
         if (values.size < 2) return@Canvas
         val max = (values.maxOrNull() ?: 0f).coerceAtLeast(1f)
@@ -373,7 +609,6 @@ fun TrendChart(values: List<Float>, modifier: Modifier = Modifier, color: Color 
         val stepX = w / (values.size - 1)
         val pts = values.mapIndexed { i, v -> Offset(i * stepX, h - (v / max) * h * 0.82f - h * 0.06f) }
 
-        // Faint guide lines
         repeat(3) { k ->
             val gy = h * (k + 1) / 4f
             drawLine(SW.Line, Offset(0f, gy), Offset(w, gy), strokeWidth = 1f)
@@ -394,14 +629,14 @@ fun TrendChart(values: List<Float>, modifier: Modifier = Modifier, color: Color 
             lineTo(pts.first().x, h)
             close()
         }
-        drawPath(area, Brush.verticalGradient(listOf(color.copy(alpha = 0.32f), Color.Transparent)))
+        drawPath(area, Brush.verticalGradient(listOf(color.copy(alpha = 0.14f), Color.Transparent)))
         drawPath(line, color, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-        drawCircle(SW.Bg, 6.dp.toPx(), pts.last())
+        drawCircle(Color.White, 6.dp.toPx(), pts.last())
         drawCircle(color, 4.dp.toPx(), pts.last())
     }
 }
 
-/** Boxed selectable tile used in category grids ("Food / Transport / Shopping" style). */
+/** Boxed selectable tile used in category grids. Selected tiles turn charcoal. */
 @Composable
 fun CategoryTile(
     icon: ImageVector,
@@ -409,22 +644,22 @@ fun CategoryTile(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = SW.Lime,
+    tint: Color = SW.Text,
+    idleColor: Color = SW.Surface,
 ) {
-    val borderColor = if (selected) tint else SW.Line
+    val bg by animateColorAsState(if (selected) SW.Ink else idleColor, label = "tile")
     Column(
         modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) tint.copy(alpha = 0.14f) else SW.Card)
-            .border(if (selected) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(icon, null, tint = if (selected) tint else SW.Subtle, modifier = Modifier.size(24.dp))
+        Icon(icon, null, tint = if (selected) SW.OnInk else tint, modifier = Modifier.size(24.dp))
         Spacer(Modifier.height(6.dp))
         Text(
-            label, color = if (selected) tint else SW.Subtle, style = MaterialTheme.typography.labelMedium,
+            label, color = if (selected) SW.OnInk else SW.Subtle, style = MaterialTheme.typography.labelMedium,
             maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
         )
     }
@@ -432,81 +667,63 @@ fun CategoryTile(
 
 // ====================================================================== misc
 
+/** Round avatar with the user's initial on a warm gradient. */
 @Composable
-fun Avatar(name: String, modifier: Modifier = Modifier, size: Dp = 44.dp, onClick: (() -> Unit)? = null) {
+fun Avatar(name: String, modifier: Modifier = Modifier, size: Dp = 48.dp, onClick: (() -> Unit)? = null) {
     val initial = name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "S"
     Box(
         modifier
             .size(size)
             .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(SW.Lime, SW.LimeDeep)))
-            .border(2.dp, SW.Bg, CircleShape)
+            .background(Brush.linearGradient(listOf(Color(0xFFF2A35E), Color(0xFFD27D4E))))
+            .border(2.dp, Color.White, CircleShape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        Text(initial, color = SW.OnLime, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.42f).sp)
+        Text(initial, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = (size.value * 0.4f).sp)
     }
 }
 
-/** Glowing sphere logo from the login reference, with optional concentric rings. */
+/** SmartWaste leaf mark in a charcoal circle. */
 @Composable
-fun GlowOrb(modifier: Modifier = Modifier, orbSize: Dp = 96.dp, rings: Boolean = false) {
-    Box(modifier.size(if (rings) orbSize * 1.9f else orbSize), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val c = center
-            val r = orbSize.toPx() / 2
-            if (rings) {
-                listOf(1.3f to 0.10f, 1.6f to 0.07f, 1.88f to 0.04f).forEach { (k, a) ->
-                    drawCircle(SW.Lime.copy(alpha = a), r * k, c, style = Stroke(1.dp.toPx()))
-                }
-            }
-            drawCircle(Brush.radialGradient(listOf(SW.Lime.copy(alpha = 0.35f), Color.Transparent), c, r * 1.5f), r * 1.5f, c)
-            drawCircle(
-                Brush.radialGradient(
-                    listOf(Color(0xFFE9FF8A), SW.LimeDeep, Color(0xFF3F5212), Color(0xFF131806)),
-                    Offset(c.x - r * 0.35f, c.y - r * 0.4f), r * 1.5f,
-                ),
-                r, c,
-            )
-            drawCircle(SW.Lime.copy(alpha = 0.55f), r, c, style = Stroke(1.2.dp.toPx()))
-        }
+fun BrandMark(modifier: Modifier = Modifier, size: Dp = 84.dp, container: Color = SW.Ink, content: Color = SW.OnInk) {
+    Box(modifier.size(size).clip(CircleShape).background(container), contentAlignment = Alignment.Center) {
         Image(
-            painterResource(R.drawable.ic_recycle), null,
-            colorFilter = ColorFilter.tint(SW.OnLime.copy(alpha = 0.55f)),
-            modifier = Modifier.size(orbSize * 0.36f),
+            painterResource(R.drawable.ic_recycle), "SmartWaste",
+            colorFilter = ColorFilter.tint(content),
+            modifier = Modifier.size(size * 0.42f),
         )
     }
 }
 
+/** White search pill with the charcoal filter button inside it. */
 @Composable
 fun SearchPill(
     placeholder: String,
     onClick: () -> Unit,
     onFilter: () -> Unit,
     modifier: Modifier = Modifier,
+    filterIcon: ImageVector = Icons.Rounded.Tune,
+    filterDescription: String = "Filters",
 ) {
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier
-                .weight(1f)
-                .height(52.dp)
-                .clip(RoundedCornerShape(26.dp))
-                .background(SW.Card)
-                .border(1.dp, SW.Line, RoundedCornerShape(26.dp))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Rounded.Search, null, tint = SW.Subtle, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(placeholder, color = SW.Muted, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-        }
-        Spacer(Modifier.width(10.dp))
-        CircleIconButton(Icons.Rounded.Tune, "Filters", onFilter, container = SW.Lime, content = SW.OnLime, size = 52.dp, iconSize = 22.dp, bordered = false)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .clip(RoundedCornerShape(30.dp))
+            .background(SW.Surface)
+            .clickable(onClick = onClick)
+            .padding(start = 20.dp, end = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Search, null, tint = SW.Text, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(placeholder, color = SW.Muted, style = MaterialTheme.typography.bodyLarge, maxLines = 1, modifier = Modifier.weight(1f))
+        CircleIconButton(filterIcon, filterDescription, onFilter, container = SW.Ink, content = SW.OnInk, size = 46.dp, iconSize = 20.dp)
     }
 }
 
-/** Labelled input in the login reference style: "Email address*" above a dark rounded field. */
+/** Labelled input: "Email address*" above a white rounded field. */
 @Composable
 fun AuthField(
     label: String,
@@ -516,7 +733,7 @@ fun AuthField(
     modifier: Modifier = Modifier,
     password: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
-    imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Next,
+    imeAction: ImeAction = ImeAction.Next,
     onIme: (() -> Unit)? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
@@ -526,11 +743,10 @@ fun AuthField(
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(SW.Field)
-                .border(1.dp, SW.Line, RoundedCornerShape(14.dp))
-                .padding(horizontal = 14.dp),
+                .height(56.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(SW.Surface)
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
@@ -540,7 +756,7 @@ fun AuthField(
                     onValueChange = onValueChange,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = SW.Text),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(SW.Lime),
+                    cursorBrush = SolidColor(SW.Ink),
                     visualTransformation = if (password && !visible) PasswordVisualTransformation() else VisualTransformation.None,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = if (password) KeyboardType.Password else keyboardType,
@@ -562,7 +778,7 @@ fun AuthField(
     }
 }
 
-/** Capacity bar for smart bins (lime → amber → red). Null means the bin doesn't report capacity. */
+/** Capacity bar for smart bins. Null means the bin doesn't report capacity. */
 @Composable
 fun FillLevelBar(percent: Int?, modifier: Modifier = Modifier, showLabel: Boolean = true) {
     Column(modifier) {
@@ -579,8 +795,8 @@ fun FillLevelBar(percent: Int?, modifier: Modifier = Modifier, showLabel: Boolea
 }
 
 @Composable
-fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modifier, height: Dp = 6.dp) {
-    Box(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)).background(SW.Card2)) {
+fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modifier, height: Dp = 6.dp, track: Color = SW.Track) {
+    Box(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)).background(track)) {
         if (fraction > 0f) {
             Box(
                 Modifier.fillMaxWidth(fraction.coerceIn(0.02f, 1f)).height(height)
@@ -593,32 +809,12 @@ fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modifier, he
 fun fillColor(percent: Int): Color = when {
     percent >= 90 -> SW.Danger
     percent >= 65 -> SW.Warn
-    else -> SW.Lime
+    else -> SW.Ink
 }
 
 @Composable
-fun StatTile(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier,
-    tint: Color = SW.Lime,
-) {
-    Column(
-        modifier.clip(RoundedCornerShape(20.dp)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(20.dp)).padding(14.dp),
-    ) {
-        Box(Modifier.size(34.dp).clip(CircleShape).background(tint.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(value, style = MaterialTheme.typography.titleLarge, color = SW.Text, maxLines = 1)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = SW.Muted, maxLines = 1)
-    }
-}
-
-@Composable
-fun IconBadge(icon: ImageVector, tint: Color, modifier: Modifier = Modifier, size: Dp = 44.dp, container: Color = tint.copy(alpha = 0.14f)) {
-    Box(modifier.size(size).clip(RoundedCornerShape(size * 0.34f)).background(container), contentAlignment = Alignment.Center) {
+fun IconBadge(icon: ImageVector, tint: Color, modifier: Modifier = Modifier, size: Dp = 44.dp, container: Color = tint.copy(alpha = 0.12f)) {
+    Box(modifier.size(size).clip(RoundedCornerShape(size * 0.32f)).background(container), contentAlignment = Alignment.Center) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.5f))
     }
 }

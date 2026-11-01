@@ -25,12 +25,12 @@ Team: Randy Chong Haw, Oh Jun Long, Poh Wei Lun · Advisor: Mary Lay
 | 💬 | **AI support button** | A small floating button in the bottom-right corner opens an AI chat for e-waste and app questions. It falls back to an offline FAQ. |
 | 🔒 | **Transparency & anti-fraud** | Points formula shown to users, mock-GPS blocking, one-time code use (hashed), QR distance check, and a daily deposit cap. |
 
-**Design.** One palette is used on every screen: near-black olive surfaces with a single lime accent, plus harmonised green and yellow tints for categories and charts. The palette and auth screens follow the "Welcome Back" login reference. The main screens follow the second reference's layout:
-- a hero header with a big number and a stats strip
-- a rounded content sheet
-- trend charts and a Month / Quarter / Year segmented control
-- category grids and progress bars
-- a bottom bar with a raised centre **Scan** button
+**Design.** Every screen follows a light travel-app reference: a light grey canvas, white cards and sheets, and one charcoal accent for selected chips, primary buttons and the bottom bar. Colour comes from photo-style cover art (sky-to-ground gradients with a sun glow and ridge silhouettes), and real photos replace the art wherever the app has one (scans and deposit proofs). The main patterns are:
+- Home: a "Hello" greeting with avatar, a white search pill with a charcoal filter button, category chips, and a stacked carousel of nearby bins with a frosted "View on map" pill
+- Scan result: a full-bleed photo with a white sheet and grabber, a rating-style confidence chip, "Read more" text, tab chips (Prepare / Safety / Resale value), itinerary-style step cards and a sticky charcoal action button
+- Verify deposit: a centred title bar with round buttons, step chips and a white sheet
+- Listing cards with a cover, meta line and dark arrow button for buyers and map places
+- A floating charcoal pill bottom bar with icon-only tabs; the selected tab sits in a white circle
 
 ---
 

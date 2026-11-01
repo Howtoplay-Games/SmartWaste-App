@@ -8,8 +8,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,17 +26,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AutoFixHigh
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Error
-import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,18 +46,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,11 +70,12 @@ import sg.smartwaste.app.AppContainer
 import sg.smartwaste.app.R
 import sg.smartwaste.app.data.auth.AuthException
 import sg.smartwaste.app.ui.components.AuthField
+import sg.smartwaste.app.ui.components.BrandMark
 import sg.smartwaste.app.ui.components.CircleIconButton
-import sg.smartwaste.app.ui.components.GlowOrb
 import sg.smartwaste.app.ui.components.OrDivider
 import sg.smartwaste.app.ui.components.PrimaryButton
 import sg.smartwaste.app.ui.components.SecondaryButton
+import sg.smartwaste.app.ui.components.UnderlinedLink
 import sg.smartwaste.app.ui.components.appViewModel
 import sg.smartwaste.app.ui.theme.SW
 
@@ -173,27 +166,6 @@ fun AuthScreen() {
     }
 
     Box(Modifier.fillMaxSize().background(SW.Bg)) {
-        // Olive glow + dot texture behind the header (login reference).
-        Canvas(Modifier.fillMaxWidth().height(440.dp)) {
-            drawRect(
-                Brush.radialGradient(
-                    listOf(Color(0xFF2E3A0E), Color.Transparent),
-                    center = Offset(size.width / 2, size.height * 0.25f), radius = size.width * 0.9f,
-                )
-            )
-        }
-        Canvas(Modifier.fillMaxWidth().height(300.dp)) {
-            val step = 18.dp.toPx()
-            var y = step
-            while (y < size.height) {
-                var x = step / 2
-                while (x < size.width) {
-                    drawCircle(SW.Lime.copy(alpha = 0.07f * (1 - y / size.height)), 1.dp.toPx(), Offset(x, y)); x += step
-                }
-                y += step
-            }
-        }
-
         Column(
             Modifier
                 .fillMaxSize()
@@ -205,24 +177,21 @@ fun AuthScreen() {
         ) {
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (s.mode != AuthMode.LOGIN) {
-                    CircleIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", {
+                    CircleIconButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", {
                         vm.setMode(if (s.mode == AuthMode.RESET) AuthMode.FORGOT else AuthMode.LOGIN)
-                    }, container = Color.White.copy(alpha = 0.06f))
+                    }, iconSize = 24.dp)
                 } else Spacer(Modifier.size(44.dp))
                 Spacer(Modifier.weight(1f))
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.06f)).border(1.dp, SW.Line, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(painterResource(R.drawable.ic_recycle), "SmartWaste", colorFilter = ColorFilter.tint(SW.Text), modifier = Modifier.size(20.dp))
-                }
+                Text("SmartWaste", color = SW.Text, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.size(44.dp))
             }
 
             AnimatedContent(s.mode, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "auth") { mode ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(if (mode == AuthMode.FORGOT || mode == AuthMode.RESET) 4.dp else 18.dp))
-                    GlowOrb(orbSize = 92.dp, rings = mode == AuthMode.FORGOT || mode == AuthMode.RESET)
-                    Spacer(Modifier.height(18.dp))
+                    Spacer(Modifier.height(if (mode == AuthMode.FORGOT || mode == AuthMode.RESET) 12.dp else 26.dp))
+                    BrandMark(size = 84.dp)
+                    Spacer(Modifier.height(20.dp))
                     Text(
                         when (mode) {
                             AuthMode.LOGIN -> "Welcome Back!"
@@ -230,7 +199,7 @@ fun AuthScreen() {
                             AuthMode.FORGOT -> "Forgot Password?"
                             AuthMode.RESET -> "Enter Verification Code"
                         },
-                        color = SW.Text, fontSize = 27.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                        color = SW.Text, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -262,13 +231,13 @@ fun AuthScreen() {
     s.demoCode?.let { code ->
         AlertDialog(
             onDismissRequest = vm::dismissCode,
-            containerColor = SW.Card,
-            shape = RoundedCornerShape(26.dp),
-            icon = { Icon(Icons.Rounded.Email, null, tint = SW.Lime) },
+            containerColor = SW.Surface,
+            shape = RoundedCornerShape(28.dp),
+            icon = { Icon(Icons.Outlined.Email, null, tint = SW.Ink) },
             title = { Text("Verification code", color = SW.Text) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(code, color = SW.Lime, fontSize = 34.sp, fontWeight = FontWeight.Bold, letterSpacing = 8.sp)
+                    Text(code, color = SW.Text, fontSize = 34.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 8.sp)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Demo mode: this build has no mail server, so the code is shown here instead of being emailed. Valid for 10 minutes.",
@@ -277,7 +246,7 @@ fun AuthScreen() {
                 }
             },
             confirmButton = {
-                TextButton(onClick = { vm.setCode(code); vm.dismissCode() }) { Text("Use code", color = SW.Lime, fontWeight = FontWeight.Bold) }
+                TextButton(onClick = { vm.setCode(code); vm.dismissCode() }) { Text("Use code", color = SW.Ink, fontWeight = FontWeight.SemiBold) }
             },
         )
     }
@@ -294,21 +263,18 @@ private fun LoginForm(s: AuthUiState, vm: AuthViewModel, activity: Activity?) {
             Row(Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = vm::toggleRemember), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier.size(20.dp).clip(RoundedCornerShape(6.dp))
-                        .background(if (s.remember) SW.Lime else Color.Transparent)
-                        .border(1.5.dp, if (s.remember) SW.Lime else SW.Muted, RoundedCornerShape(6.dp)),
+                        .background(if (s.remember) SW.Ink else SW.Surface)
+                        .border(1.5.dp, if (s.remember) SW.Ink else SW.Line, RoundedCornerShape(6.dp)),
                     contentAlignment = Alignment.Center,
-                ) { if (s.remember) Icon(Icons.Rounded.Check, null, tint = SW.OnLime, modifier = Modifier.size(14.dp)) }
+                ) { if (s.remember) Icon(Icons.Rounded.Check, null, tint = SW.OnInk, modifier = Modifier.size(14.dp)) }
                 Spacer(Modifier.width(8.dp))
                 Text("Remember me", color = SW.Subtle, style = MaterialTheme.typography.labelMedium)
             }
             Spacer(Modifier.weight(1f))
-            Text(
-                "Forgot Password?", color = SW.Text, style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { vm.setMode(AuthMode.FORGOT) }.padding(4.dp),
-            )
+            UnderlinedLink("Forgot Password?", { vm.setMode(AuthMode.FORGOT) })
         }
         Spacer(Modifier.height(22.dp))
-        PrimaryButton("Sign in", vm::login, Modifier.fillMaxWidth(), loading = s.loading, leading = Icons.Rounded.AutoFixHigh)
+        PrimaryButton("Sign in", vm::login, Modifier.fillMaxWidth(), loading = s.loading)
         Socials(vm, activity)
         Spacer(Modifier.height(28.dp))
         FooterLink("Don't have an account? ", "Sign up") { vm.setMode(AuthMode.REGISTER) }
@@ -324,7 +290,7 @@ private fun RegisterForm(s: AuthUiState, vm: AuthViewModel, activity: Activity?)
         Spacer(Modifier.height(16.dp))
         AuthField("Password*", s.password, vm::setPassword, "At least 8 characters, 1 number", password = true, imeAction = ImeAction.Done, onIme = vm::register)
         Spacer(Modifier.height(24.dp))
-        PrimaryButton("Register", vm::register, Modifier.fillMaxWidth(), loading = s.loading, leading = Icons.Rounded.AutoFixHigh)
+        PrimaryButton("Register", vm::register, Modifier.fillMaxWidth(), loading = s.loading)
         Socials(vm, activity)
         Spacer(Modifier.height(28.dp))
         FooterLink("Already have an account? ", "Sign In") { vm.setMode(AuthMode.LOGIN) }
@@ -336,7 +302,7 @@ private fun ForgotForm(s: AuthUiState, vm: AuthViewModel) {
     Column(Modifier.fillMaxWidth()) {
         AuthField("Email address*", s.email, vm::setEmail, "example@gmail.com", keyboardType = KeyboardType.Email, imeAction = ImeAction.Send, onIme = vm::sendCode)
         Spacer(Modifier.height(22.dp))
-        PrimaryButton("Send Code", vm::sendCode, Modifier.fillMaxWidth(), loading = s.loading, leading = Icons.Rounded.AutoFixHigh)
+        PrimaryButton("Send Code", vm::sendCode, Modifier.fillMaxWidth(), loading = s.loading)
         Spacer(Modifier.height(120.dp))
         FooterLink("Already have an account? ", "Sign In") { vm.setMode(AuthMode.LOGIN) }
     }
@@ -353,13 +319,10 @@ private fun ResetForm(s: AuthUiState, vm: AuthViewModel) {
         Spacer(Modifier.height(22.dp))
         PrimaryButton(
             "Reset Password", vm::resetPassword, Modifier.fillMaxWidth(), loading = s.loading,
-            enabled = s.code.length == 5, leading = Icons.Rounded.AutoFixHigh,
+            enabled = s.code.length == 5,
         )
         Spacer(Modifier.height(14.dp))
-        Text(
-            "Didn't get it? Resend code", color = SW.Lime, style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(6.dp)).clickable(onClick = vm::sendCode).padding(6.dp),
-        )
+        UnderlinedLink("Didn't get it? Resend code", vm::sendCode, Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(60.dp))
         FooterLink("Already have an account? ", "Sign In") { vm.setMode(AuthMode.LOGIN) }
     }
@@ -380,8 +343,8 @@ private fun CodeInput(code: String, onChange: (String) -> Unit) {
                 repeat(5) { i ->
                     val active = i == code.length
                     Box(
-                        Modifier.weight(1f).height(58.dp).clip(RoundedCornerShape(14.dp)).background(SW.Field)
-                            .border(if (active) 1.5.dp else 1.dp, if (active) SW.Lime else SW.Line, RoundedCornerShape(14.dp)),
+                        Modifier.weight(1f).height(58.dp).clip(RoundedCornerShape(18.dp)).background(SW.Surface)
+                            .border(1.5.dp, if (active) SW.Ink else SW.Surface, RoundedCornerShape(18.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(code.getOrNull(i)?.toString().orEmpty(), color = SW.Text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
@@ -409,7 +372,7 @@ private fun FooterLink(prefix: String, action: String, onClick: () -> Unit) {
         Text(
             buildAnnotatedString {
                 withStyle(SpanStyle(color = SW.Muted)) { append(prefix) }
-                withStyle(SpanStyle(color = SW.Text, fontWeight = FontWeight.SemiBold)) { append(action) }
+                withStyle(SpanStyle(color = SW.Text, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline)) { append(action) }
             },
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onClick).padding(6.dp),
@@ -420,11 +383,11 @@ private fun FooterLink(prefix: String, action: String, onClick: () -> Unit) {
 @Composable
 private fun Banner(text: String, ok: Boolean) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (ok) SW.LimeSoft else SW.DangerSoft).padding(12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(if (ok) SW.SuccessSoft else SW.DangerSoft).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Error, null, tint = if (ok) SW.Lime else SW.Danger, modifier = Modifier.size(18.dp))
+        Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Error, null, tint = if (ok) SW.Success else SW.Danger, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         Text(text, color = SW.Text, style = MaterialTheme.typography.bodySmall)
     }

@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CardGiftcard
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Map
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.outlined.CardGiftcard
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,11 +54,11 @@ import sg.smartwaste.app.ui.scan.ScanScreen
 import sg.smartwaste.app.ui.theme.SW
 
 private val barItems = listOf(
-    BarItem(Routes.HOME, "Home", Icons.Rounded.Home),
-    BarItem(Routes.MAP, "Map", Icons.Rounded.Map),
-    BarItem(Routes.SCAN, "Scan", Icons.Rounded.QrCodeScanner, accent = true),
-    BarItem(Routes.REWARDS, "Rewards", Icons.Rounded.CardGiftcard),
-    BarItem(Routes.PROFILE, "Profile", Icons.Rounded.Person),
+    BarItem(Routes.HOME, "Home", Icons.Outlined.Home),
+    BarItem(Routes.MAP, "Map", Icons.Outlined.Map),
+    BarItem(Routes.SCAN, "Scan", Icons.Outlined.QrCodeScanner),
+    BarItem(Routes.REWARDS, "Rewards", Icons.Outlined.CardGiftcard),
+    BarItem(Routes.PROFILE, "Profile", Icons.Outlined.Person),
 )
 
 private val barRoutes = barItems.map { it.route }.toSet()
@@ -100,7 +100,7 @@ private fun MainApp() {
                     onOpenMap = { mode, category, place -> nav.navigate(Routes.map(mode = mode, category = category, place = place)) },
                     onRewards = { nav.switchTab(Routes.REWARDS) },
                     onProfile = { nav.switchTab(Routes.PROFILE) },
-                    onDeposit = { nav.navigate(Routes.deposit()) },
+                    onDeposit = { placeId -> nav.navigate(Routes.deposit(place = placeId)) },
                 )
             }
             composable(
@@ -191,7 +191,7 @@ private fun MainApp() {
 private fun fabBottomPadding(route: String?, showBar: Boolean) = when {
     route == Routes.MAP -> 400.dp
     route == Routes.RESULT -> 150.dp
-    showBar -> 104.dp
+    showBar -> 102.dp
     else -> 20.dp
 }
 

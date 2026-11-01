@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,21 +27,21 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.CardGiftcard
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Error
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.MyLocation
-import androidx.compose.material.icons.rounded.Place
-import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material.icons.rounded.Redeem
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Timer
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -91,11 +91,12 @@ import sg.smartwaste.app.ui.camera.rememberCameraController
 import sg.smartwaste.app.ui.components.CAMERA_PERMISSION
 import sg.smartwaste.app.ui.components.CategoryTile
 import sg.smartwaste.app.ui.components.CircleIconButton
+import sg.smartwaste.app.ui.components.DragHandle
 import sg.smartwaste.app.ui.components.FillLevelBar
-import sg.smartwaste.app.ui.components.HeroHeader
 import sg.smartwaste.app.ui.components.IconBadge
 import sg.smartwaste.app.ui.components.LOCATION_PERMISSIONS
 import sg.smartwaste.app.ui.components.PrimaryButton
+import sg.smartwaste.app.ui.components.ScreenHeader
 import sg.smartwaste.app.ui.components.SecondaryButton
 import sg.smartwaste.app.ui.components.TintTag
 import sg.smartwaste.app.ui.components.appViewModel
@@ -130,42 +131,55 @@ fun DepositScreen(
     val estimate = if (s.step == DepositStep.DONE) s.result?.total
     else vm.preview(VerificationLevel.ONLINE_VERIFIED) ?: s.category?.let { c -> c.basePoints * s.quantity * 2 }
 
-    Column(Modifier.fillMaxSize().background(SW.Sheet).imePadding().verticalScroll(rememberScrollState())) {
-        // -------------------------------------------------------------- hero
-        HeroHeader {
-            Row(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CircleIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack, container = Color.White.copy(alpha = 0.08f))
+    Column(Modifier.fillMaxSize().background(SW.Bg)) {
+        // ---------------------------------------------------------- header
+        ScreenHeader(
+            title = "Verify deposit",
+            subtitle = s.target?.place?.name ?: "Nearest bin is found automatically",
+            onBack = onBack,
+            trailing = {
                 Text(
-                    "Verify Deposit", color = SW.Text, style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
+                    "+${estimate ?: 0}",
+                    color = SW.Text, style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(SW.Surface).padding(horizontal = 12.dp, vertical = 12.dp),
                 )
-                Spacer(Modifier.width(44.dp))
-            }
-            Spacer(Modifier.height(10.dp))
+            },
+        )
+
+        // ----------------------------------------------------------- sheet
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                .background(SW.Surface)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+        ) {
+            DragHandle(Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp))
+            Spacer(Modifier.height(16.dp))
+            StepChips(s.step)
+            Spacer(Modifier.height(20.dp))
+
             Text(
                 if (s.step == DepositStep.DONE) "Points earned" else "You can earn up to",
-                color = SW.Subtle, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+                color = SW.Muted, style = MaterialTheme.typography.bodySmall,
             )
             Text(
                 buildAnnotatedString {
-                    withStyle(SpanStyle(color = SW.Text)) { append(if (estimate != null) "+$estimate" else "+0") }
-                    withStyle(SpanStyle(color = SW.Text.copy(alpha = 0.45f), fontSize = 26.sp)) { append(" pts") }
+                    append(if (estimate != null) "+$estimate" else "+0")
+                    withStyle(SpanStyle(color = SW.Muted, fontSize = 18.sp, fontWeight = FontWeight.Medium)) { append(" pts") }
                 },
-                fontSize = 46.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+                color = SW.Text, fontSize = 34.sp, fontWeight = FontWeight.SemiBold,
             )
             Text(
                 s.category?.let { String.format(Locale.US, "≈ %.2f kg diverted · %.1f kg CO₂e avoided", PointsEngine.kgFor(it, s.quantity), PointsEngine.co2For(it, s.quantity)) }
                     ?: "Choose a category to see your points",
-                color = SW.Lime, style = MaterialTheme.typography.labelMedium, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+                color = SW.Muted, style = MaterialTheme.typography.bodySmall,
             )
-            Spacer(Modifier.height(16.dp))
-            StepIndicator(s.step)
-        }
+            Spacer(Modifier.height(20.dp))
 
-        Column(Modifier.padding(horizontal = 20.dp)) {
             if (s.proof == BinProof.QR && s.sessionStart != null && s.step != DepositStep.DONE) {
                 SmartBinSession(s.sessionStart!!, s.quantity)
                 Spacer(Modifier.height(14.dp))
@@ -177,16 +191,16 @@ fun DepositScreen(
                     "Bin",
                     s.target?.place?.name ?: "Nearest bin (found automatically)",
                     s.target?.let { Geo.formatDistance(it.distanceMeters) } ?: "",
-                    Icons.Rounded.Place,
+                    Icons.Outlined.Place,
                     "Proof",
                     when (s.proof) {
                         BinProof.QR -> "Smart-bin QR ✓"
                         BinProof.GPS -> "GPS confirmed ✓"
                         null -> "Not yet"
                     },
-                    Icons.Rounded.VerifiedUser,
+                    Icons.Outlined.VerifiedUser,
                 )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(20.dp))
             }
             s.error?.let {
                 ErrorBanner(it, vm::clearError)
@@ -206,23 +220,31 @@ fun DepositScreen(
     }
 }
 
+/** Tab-style chips for the four steps. Finished steps get a check mark. */
 @Composable
-private fun StepIndicator(step: DepositStep) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            DepositStep.entries.forEach { st ->
-                Box(
-                    Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp))
-                        .background(if (st.ordinal <= step.ordinal) SW.Lime else Color.White.copy(alpha = 0.1f))
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Row {
-            DepositStep.entries.forEach { st ->
+private fun StepChips(step: DepositStep) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DepositStep.entries.forEach { st ->
+            val current = st == step
+            val done = st.ordinal < step.ordinal
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (current) SW.Ink else SW.SurfaceAlt)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (done) {
+                    Icon(Icons.Rounded.Check, null, tint = SW.Text, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                }
                 Text(
-                    st.label, color = if (st.ordinal <= step.ordinal) SW.Text else SW.Muted, style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.weight(1f), textAlign = TextAlign.Center, maxLines = 1,
+                    st.label, maxLines = 1, style = MaterialTheme.typography.labelMedium,
+                    color = when {
+                        current -> SW.OnInk
+                        done -> SW.Text
+                        else -> SW.Muted
+                    },
                 )
             }
         }
@@ -238,30 +260,32 @@ private fun SmartBinSession(start: Long, count: Int) {
     }
     val secs = ((now - start) / 1000).coerceAtLeast(0)
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SW.OliveDark)
-            .border(1.dp, SW.Lime.copy(alpha = 0.25f), RoundedCornerShape(18.dp)).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(SW.Ink).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.Timer, null, tint = SW.Lime, modifier = Modifier.size(20.dp))
+        Icon(Icons.Rounded.Timer, null, tint = SW.OnInk, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
-        Text(String.format(Locale.US, "%02d:%02d", secs / 60, secs % 60), color = SW.Text, style = MaterialTheme.typography.titleMedium)
+        Text(String.format(Locale.US, "%02d:%02d", secs / 60, secs % 60), color = SW.OnInk, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.width(14.dp))
-        Text("NUM OF DEVICES: $count", color = SW.Subtle, style = MaterialTheme.typography.labelMedium)
+        Text("NUM OF DEVICES: $count", color = SW.OnInk.copy(alpha = 0.7f), style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.weight(1f))
-        Text("One item at a time", color = SW.Lime, style = MaterialTheme.typography.labelSmall)
+        Text("One item at a time", color = SW.OnInk.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
     }
 }
 
-/** 3 × 2 category grid ("Food / Transport / Shopping" layout) plus quantity stepper. */
+/** 3 × 2 category grid plus quantity stepper. */
 @Composable
 private fun CategoryGrid(s: DepositUiState, vm: DepositViewModel) {
-    Text("Category", color = SW.Text, style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.height(10.dp))
+    Text("What are you recycling?", color = SW.Text, style = MaterialTheme.typography.titleLarge)
+    Spacer(Modifier.height(12.dp))
     val cats = EWasteCategory.entries.filter { it.binFriendly }
     cats.chunked(3).forEach { row ->
-        Row(Modifier.padding(vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             row.forEach { c ->
-                CategoryTile(c.icon, c.shortTitle, selected = s.category == c, onClick = { vm.setCategory(c) }, modifier = Modifier.weight(1f), tint = c.tint)
+                CategoryTile(
+                    c.icon, c.shortTitle, selected = s.category == c, onClick = { vm.setCategory(c) },
+                    modifier = Modifier.weight(1f), tint = c.tint, idleColor = SW.SurfaceAlt,
+                )
             }
             repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
         }
@@ -269,21 +293,21 @@ private fun CategoryGrid(s: DepositUiState, vm: DepositViewModel) {
     if (s.category != null) {
         Spacer(Modifier.height(10.dp))
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(18.dp)).padding(14.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(SW.SurfaceAlt).padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
+                Text("${s.category.compartment} · ${s.category.basePoints} pts each", style = MaterialTheme.typography.bodySmall, color = SW.Muted)
                 Text(s.itemName.ifBlank { s.category.title }, style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${s.category.compartment} · ${s.category.basePoints} pts each", style = MaterialTheme.typography.labelSmall, color = SW.Muted)
             }
             CircleIconButton(Icons.Rounded.Remove, "Less", { vm.changeQuantity(-1) }, size = 34.dp, iconSize = 16.dp)
             Text("${s.quantity}", style = MaterialTheme.typography.titleMedium, color = SW.Text, modifier = Modifier.padding(horizontal = 12.dp))
-            CircleIconButton(Icons.Rounded.Add, "More", { vm.changeQuantity(1) }, container = SW.Lime, content = SW.OnLime, size = 34.dp, iconSize = 16.dp, bordered = false)
+            CircleIconButton(Icons.Rounded.Add, "More", { vm.changeQuantity(1) }, container = SW.Ink, content = SW.OnInk, size = 34.dp, iconSize = 16.dp)
         }
     }
 }
 
-/** Two side-by-side label/value fields, like "Date / Payment" in the reference. */
+/** Two side-by-side label/value fields. */
 @Composable
 private fun FieldRow(
     label1: String, value1: String, trailing1: String, icon1: ImageVector,
@@ -291,30 +315,28 @@ private fun FieldRow(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(Modifier.weight(1.4f)) {
-            Text(label1, color = SW.Muted, style = MaterialTheme.typography.labelMedium)
+            Text(label1, color = SW.Muted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(6.dp))
             Row(
-                Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp)).background(SW.Field).border(1.dp, SW.Line, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 12.dp),
+                Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(18.dp)).background(SW.SurfaceAlt).padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(value1, color = SW.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (trailing1.isNotBlank()) Text(trailing1, color = SW.Muted, style = MaterialTheme.typography.labelSmall)
                 }
-                Icon(icon1, null, tint = SW.Subtle, modifier = Modifier.size(18.dp))
+                Icon(icon1, null, tint = SW.Text, modifier = Modifier.size(18.dp))
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(label2, color = SW.Muted, style = MaterialTheme.typography.labelMedium)
+            Text(label2, color = SW.Muted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(6.dp))
             Row(
-                Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp)).background(SW.Field).border(1.dp, SW.Line, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 12.dp),
+                Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(18.dp)).background(SW.SurfaceAlt).padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(value2, color = SW.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, modifier = Modifier.weight(1f), overflow = TextOverflow.Ellipsis)
-                Icon(icon2, null, tint = SW.Subtle, modifier = Modifier.size(18.dp))
+                Icon(icon2, null, tint = SW.Text, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -323,7 +345,7 @@ private fun FieldRow(
 @Composable
 private fun ErrorBanner(text: String, onDismiss: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SW.DangerSoft).clickable(onClick = onDismiss).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SW.DangerSoft).clickable(onClick = onDismiss).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.Error, null, tint = SW.Danger, modifier = Modifier.size(20.dp))
@@ -333,10 +355,11 @@ private fun ErrorBanner(text: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun StepTitle(title: String, body: String) {
+private fun StepTitle(overline: String, title: String, body: String) {
+    Text(overline, style = MaterialTheme.typography.bodySmall, color = SW.Muted)
     Text(title, style = MaterialTheme.typography.titleLarge, color = SW.Text)
     Spacer(Modifier.height(6.dp))
-    Text(body, style = MaterialTheme.typography.bodyMedium, color = SW.Muted)
+    Text(body, style = MaterialTheme.typography.bodyMedium, color = SW.Subtle)
     Spacer(Modifier.height(16.dp))
 }
 
@@ -347,7 +370,8 @@ private fun LocationStep(s: DepositUiState, vm: DepositViewModel, cameraGranted:
     var scanningQr by rememberSaveable { mutableStateOf(false) }
     Column {
         StepTitle(
-            "Step 1: Prove you're at the bin",
+            "Step 1 of 3",
+            "Prove you're at the bin",
             "Confirm your GPS location (within ${PointsEngine.MAX_BIN_DISTANCE_M.toInt()} m of a bin), or scan the QR code on a SmartWaste smart bin for a 20% bonus.",
         )
         s.target?.let { t ->
@@ -367,9 +391,9 @@ private fun LocationStep(s: DepositUiState, vm: DepositViewModel, cameraGranted:
             Spacer(Modifier.height(10.dp))
             SecondaryButton("Use GPS instead", { scanningQr = false }, Modifier.fillMaxWidth())
         } else {
-            PrimaryButton("Check my location", vm::checkLocation, Modifier.fillMaxWidth(), loading = s.checkingLocation, leading = Icons.Rounded.MyLocation)
+            PrimaryButton("Check my location", vm::checkLocation, Modifier.fillMaxWidth(), loading = s.checkingLocation, leading = Icons.Outlined.MyLocation)
             Spacer(Modifier.height(10.dp))
-            SecondaryButton("Scan SmartWaste bin QR", { scanningQr = true }, Modifier.fillMaxWidth(), leading = Icons.Rounded.QrCodeScanner)
+            SecondaryButton("Scan SmartWaste bin QR", { scanningQr = true }, Modifier.fillMaxWidth(), leading = Icons.Outlined.QrCodeScanner)
             if (s.proof == BinProof.QR && s.category != null) {
                 Spacer(Modifier.height(10.dp))
                 PrimaryButton("Continue", vm::continueAfterQrCategory, Modifier.fillMaxWidth())
@@ -384,20 +408,20 @@ private fun LocationStep(s: DepositUiState, vm: DepositViewModel, cameraGranted:
 private fun PhotoStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: Boolean, requestCamera: () -> Unit) {
     val context = LocalContext.current
     Column {
-        StepTitle("Step 2: Photo proof", "Take a photo of your item going into the bin opening. AI checks the photo shows an e-waste bin.")
+        StepTitle("Step 2 of 3", "Photo proof", "Take a photo of your item going into the bin opening. AI checks the photo shows an e-waste bin.")
         if (s.photoPath == null) {
             if (!cameraGranted) {
                 PrimaryButton("Allow camera", requestCamera, Modifier.fillMaxWidth())
             } else {
                 val controller = rememberCameraController(CameraController.IMAGE_CAPTURE)
                 var busy by remember { mutableStateOf(false) }
-                Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(28.dp)).background(SW.Card)) {
+                Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(28.dp)).background(SW.Ink)) {
                     CameraPreview(controller, Modifier.fillMaxSize())
-                    CornerBrackets(Modifier.fillMaxSize().padding(16.dp), color = SW.Lime)
+                    CornerBrackets(Modifier.fillMaxSize().padding(16.dp))
                     Box(
                         Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp).size(72.dp)
-                            .border(4.dp, SW.Text, CircleShape).padding(6.dp).clip(CircleShape)
-                            .background(if (busy) SW.LimeDeep else SW.Lime)
+                            .border(4.dp, Color.White, CircleShape).padding(6.dp).clip(CircleShape)
+                            .background(if (busy) SW.Track else Color.White)
                             .clickable(enabled = !busy) {
                                 busy = true
                                 controller.capture(
@@ -407,18 +431,18 @@ private fun PhotoStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: Bo
                                 )
                             },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Rounded.CameraAlt, "Take photo", tint = SW.OnLime) }
+                    ) { Icon(Icons.Outlined.CameraAlt, "Take photo", tint = SW.Ink) }
                 }
             }
         } else {
-            Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(28.dp))) {
+            Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(28.dp)).background(SW.SurfaceAlt)) {
                 AsyncImage(File(s.photoPath), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             }
             Spacer(Modifier.height(14.dp))
             val check = s.photoCheck
             when {
                 s.checkingPhoto -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = SW.Lime)
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = SW.Ink)
                     Spacer(Modifier.width(10.dp))
                     Text("AI is checking your photo…", color = SW.Subtle)
                 }
@@ -430,7 +454,7 @@ private fun PhotoStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: Bo
             }
             Spacer(Modifier.height(14.dp))
             Row {
-                SecondaryButton("Retake", vm::retakePhoto, Modifier.weight(1f), leading = Icons.Rounded.Refresh)
+                SecondaryButton("Retake", vm::retakePhoto, Modifier.weight(1f), leading = Icons.Outlined.Refresh)
                 Spacer(Modifier.width(10.dp))
                 PrimaryButton("Continue", vm::continueToVerify, Modifier.weight(1f), enabled = !s.checkingPhoto && check != null)
             }
@@ -447,12 +471,13 @@ private fun VerifyStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: B
     val none = vm.preview(VerificationLevel.UNVERIFIED)
     Column {
         StepTitle(
-            "Step 3: Verify your item",
+            "Step 3 of 3",
+            "Verify your item",
             "Scan the product barcode, serial number label or IMEI (dial *#06# on phones). We check it online so you earn the full bonus.",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TintTag("Verified: +${full ?: 0} pts", SW.Lime, icon = Icons.Rounded.VerifiedUser)
-            TintTag("Skip: +${none ?: 0} pts", SW.Muted)
+            TintTag("Verified: +${full ?: 0} pts", SW.Success, icon = Icons.Outlined.VerifiedUser)
+            TintTag("Skip: +${none ?: 0} pts", SW.Subtle)
         }
         Spacer(Modifier.height(14.dp))
 
@@ -465,26 +490,26 @@ private fun VerifyStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: B
             }
             if (s.verifying) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = SW.Lime)
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = SW.Ink)
                     Spacer(Modifier.width(10.dp))
                     Text("Verifying online…", color = SW.Subtle)
                 }
             }
             Spacer(Modifier.height(14.dp))
-            Text("Note", color = SW.Muted, style = MaterialTheme.typography.labelMedium)
+            Text("Note", color = SW.Muted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = manual,
                 onValueChange = { manual = it.take(32) },
                 placeholder = { Text("Or type the barcode / serial / IMEI", color = SW.Muted) },
                 singleLine = true,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { vm.onCode(manual) }),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = SW.Lime, unfocusedBorderColor = SW.Line,
-                    focusedContainerColor = SW.Field, unfocusedContainerColor = SW.Field,
-                    focusedTextColor = SW.Text, unfocusedTextColor = SW.Text, cursorColor = SW.Lime,
+                    focusedBorderColor = SW.Ink, unfocusedBorderColor = SW.SurfaceAlt,
+                    focusedContainerColor = SW.SurfaceAlt, unfocusedContainerColor = SW.SurfaceAlt,
+                    focusedTextColor = SW.Text, unfocusedTextColor = SW.Text, cursorColor = SW.Ink,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -498,7 +523,7 @@ private fun VerifyStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: B
             VerificationCard(outcome)
             Spacer(Modifier.height(14.dp))
             val points = vm.preview(outcome.level) ?: 0
-            PrimaryButton("Claim Points • +$points", { vm.claim(skip = false) }, Modifier.fillMaxWidth(), loading = s.saving, leading = Icons.Rounded.EmojiEvents)
+            PrimaryButton("Claim points • +$points", { vm.claim(skip = false) }, Modifier.fillMaxWidth(), loading = s.saving, leading = Icons.Outlined.EmojiEvents)
             Spacer(Modifier.height(10.dp))
             SecondaryButton("Scan a different code", vm::clearVerification, Modifier.fillMaxWidth())
         }
@@ -508,7 +533,7 @@ private fun VerifyStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: B
 @Composable
 private fun VerificationCard(o: VerificationOutcome) {
     val ok = o.level == VerificationLevel.ONLINE_VERIFIED || o.level == VerificationLevel.CHECKSUM_VALID || o.level == VerificationLevel.PLAUSIBLE
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(22.dp)).padding(16.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(SW.SurfaceAlt).padding(16.dp)) {
         ResultRow(ok = ok, title = o.level.label, subtitle = o.details)
         Spacer(Modifier.height(12.dp))
         InfoLine("Type", o.codeType.label)
@@ -526,7 +551,7 @@ private fun VerificationCard(o: VerificationOutcome) {
 @Composable
 private fun InfoLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = SW.Muted, modifier = Modifier.width(100.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = SW.Muted, modifier = Modifier.width(100.dp))
         Text(value, style = MaterialTheme.typography.labelMedium, color = SW.Text, modifier = Modifier.weight(1f))
     }
 }
@@ -534,7 +559,7 @@ private fun InfoLine(label: String, value: String) {
 @Composable
 private fun ResultRow(ok: Boolean, title: String, subtitle: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconBadge(if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.Warning, if (ok) SW.Lime else SW.Warn, size = 40.dp)
+        IconBadge(if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.Warning, if (ok) SW.Success else SW.Warn, size = 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = SW.Text)
@@ -556,22 +581,23 @@ private fun CodeCamera(readText: Boolean, onCode: (ScannedCode) -> Unit) {
             analyzer.close()
         }
     }
-    Box(Modifier.fillMaxWidth().aspectRatio(1.2f).clip(RoundedCornerShape(28.dp)).background(SW.Card)) {
+    Box(Modifier.fillMaxWidth().aspectRatio(1.2f).clip(RoundedCornerShape(28.dp)).background(SW.Ink)) {
         CameraPreview(controller, Modifier.fillMaxSize())
-        CornerBrackets(Modifier.fillMaxSize().padding(22.dp), color = SW.Lime)
+        CornerBrackets(Modifier.fillMaxSize().padding(22.dp))
         Text(
             if (readText) "Barcode, serial (S/N) or IMEI" else "SmartWaste bin QR",
-            color = SW.Text, style = MaterialTheme.typography.labelMedium,
+            color = Color.White, style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).clip(RoundedCornerShape(50))
-                .background(SW.Bg.copy(alpha = 0.6f)).padding(horizontal = 12.dp, vertical = 6.dp),
+                .background(SW.Smoke).padding(horizontal = 12.dp, vertical = 6.dp),
         )
         Box(
             Modifier.align(Alignment.BottomEnd).padding(14.dp).size(44.dp).clip(CircleShape)
-                .background(if (torch) SW.Lime else SW.Bg.copy(alpha = 0.6f))
+                .background(if (torch) Color.White else SW.Frost)
+                .border(1.dp, SW.FrostLine, CircleShape)
                 .clickable { torch = !torch; controller.enableTorch(torch) },
             contentAlignment = Alignment.Center,
         ) {
-            Text("⚡", fontSize = 18.sp, color = if (torch) SW.OnLime else SW.Text)
+            Text("⚡", fontSize = 18.sp, color = if (torch) SW.Ink else Color.White)
         }
     }
 }
@@ -582,11 +608,13 @@ private fun CodeCamera(readText: Boolean, onCode: (ScannedCode) -> Unit) {
 private fun DoneStep(s: DepositUiState, onHome: () -> Unit, onRewards: () -> Unit) {
     val result = s.result ?: return
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        IconBadge(Icons.Rounded.EmojiEvents, SW.Lime, size = 64.dp)
-        Spacer(Modifier.height(10.dp))
+        Box(Modifier.size(68.dp).clip(CircleShape).background(SW.Ink), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.EmojiEvents, null, tint = SW.OnInk, modifier = Modifier.size(32.dp))
+        }
+        Spacer(Modifier.height(12.dp))
         Text("Thank you for recycling responsibly!", color = SW.Text, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(22.dp)).padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(SW.SurfaceAlt).padding(16.dp)) {
             Text("How your points were calculated", style = MaterialTheme.typography.titleSmall, color = SW.Text)
             Spacer(Modifier.height(8.dp))
             result.lines.forEach { line ->
@@ -595,21 +623,21 @@ private fun DoneStep(s: DepositUiState, onHome: () -> Unit, onRewards: () -> Uni
                     Text(
                         (if (line.points >= 0) "+" else "") + line.points,
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (line.points >= 0) SW.Lime else SW.Danger,
+                        color = if (line.points >= 0) SW.Success else SW.Danger,
                     )
                 }
             }
             Box(Modifier.fillMaxWidth().padding(vertical = 8.dp).height(1.dp).background(SW.Line))
             Row {
                 Text("Total", style = MaterialTheme.typography.titleSmall, color = SW.Text, modifier = Modifier.weight(1f))
-                Text("+${result.total} pts", style = MaterialTheme.typography.titleSmall, color = SW.Lime)
+                Text("+${result.total} pts", style = MaterialTheme.typography.titleSmall, color = SW.Text)
             }
         }
         Spacer(Modifier.height(16.dp))
         Row {
-            SecondaryButton("Home", onHome, Modifier.weight(1f), leading = Icons.Rounded.Home)
+            SecondaryButton("Home", onHome, Modifier.weight(1f), leading = Icons.Outlined.Home)
             Spacer(Modifier.width(10.dp))
-            PrimaryButton("Rewards", onRewards, Modifier.weight(1f), leading = Icons.Rounded.Redeem)
+            PrimaryButton("Rewards", onRewards, Modifier.weight(1f), leading = Icons.Outlined.CardGiftcard)
         }
     }
 }

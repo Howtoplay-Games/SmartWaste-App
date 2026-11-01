@@ -1,9 +1,9 @@
 package sg.smartwaste.app.ui.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,22 +12,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ExitToApp
-import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.VpnKey
+import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material.icons.rounded.VerifiedUser
-import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -52,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import sg.smartwaste.app.BuildConfig
 import sg.smartwaste.app.data.auth.SessionState
@@ -59,16 +66,20 @@ import sg.smartwaste.app.data.db.DepositEntity
 import sg.smartwaste.app.data.model.EWasteCategory
 import sg.smartwaste.app.data.rewards.RewardsCatalog
 import sg.smartwaste.app.ui.components.Avatar
-import sg.smartwaste.app.ui.components.IconBadge
+import sg.smartwaste.app.ui.components.CoverArt
+import sg.smartwaste.app.ui.components.DayCard
 import sg.smartwaste.app.ui.components.ProgressBar
 import sg.smartwaste.app.ui.components.SectionHeader
-import sg.smartwaste.app.ui.components.SegmentedControl
+import sg.smartwaste.app.ui.components.TabChips
 import sg.smartwaste.app.ui.components.TintTag
+import sg.smartwaste.app.ui.components.Tones
 import sg.smartwaste.app.ui.components.TrendChart
 import sg.smartwaste.app.ui.components.appContainer
 import sg.smartwaste.app.ui.components.icon
 import sg.smartwaste.app.ui.components.tint
+import sg.smartwaste.app.ui.components.tones
 import sg.smartwaste.app.ui.theme.SW
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -110,38 +121,43 @@ fun ProfileScreen() {
         // ------------------------------------------------------------ header
         item {
             Row(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Impact", color = SW.Text, style = MaterialTheme.typography.headlineMedium)
-                    Text("Recycling patterns & goals", color = SW.Muted, style = MaterialTheme.typography.labelMedium)
+                    Text("Your impact", color = SW.Text, style = MaterialTheme.typography.headlineSmall)
+                    Text("Recycling patterns & goals", color = SW.Muted, style = MaterialTheme.typography.bodySmall)
                 }
-                Avatar(user?.name.orEmpty(), size = 46.dp, onClick = { editName = true })
+                Avatar(user?.name.orEmpty(), size = 50.dp, onClick = { editName = true })
             }
-            SegmentedControl(Period.entries, period, { it.label }, { period = it }, Modifier.padding(horizontal = 20.dp))
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(18.dp))
+            TabChips(
+                Period.entries, period, { it.label }, { period = it },
+                idleColor = SW.Surface, small = false, contentPadding = PaddingValues(horizontal = 20.dp),
+            )
+            Spacer(Modifier.height(16.dp))
         }
 
         // ---------------------------------------------------- headline chart
         item {
             Column(
-                Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Card)
-                    .border(1.dp, SW.Line, RoundedCornerShape(24.dp)).padding(18.dp),
+                Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(SW.Surface).padding(18.dp),
             ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(String.format(Locale.US, "%.1f kg", kg), color = SW.Text, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+                Text("E-waste diverted", color = SW.Muted, style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(String.format(Locale.US, "%.1f kg", kg), color = SW.Text, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
                     val delta = kg - prevKg
                     TintTag(
                         String.format(Locale.US, "%+.1f kg vs last %s", delta, period.label.lowercase()),
-                        if (delta >= 0) SW.Lime else SW.Danger,
+                        if (delta >= 0) SW.Success else SW.Danger,
                     )
                 }
-                Text("E-waste diverted · $points pts earned", color = SW.Muted, style = MaterialTheme.typography.labelMedium)
+                Text("$points pts earned this ${period.label.lowercase()}", color = SW.Muted, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(14.dp))
-                val data = if (buckets.any { it > 0f }) buckets else List(buckets.size) { 0.15f + (it % 3) * 0.05f }
-                TrendChart(data, Modifier.fillMaxWidth().height(120.dp), color = if (buckets.any { it > 0f }) SW.Lime else SW.Line)
+                val hasData = buckets.any { it > 0f }
+                val data = if (hasData) buckets else List(buckets.size) { 0.15f + (it % 3) * 0.05f }
+                TrendChart(data, Modifier.fillMaxWidth().height(120.dp), color = if (hasData) SW.Ink else SW.Line)
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     axisLabels(period).forEach { Text(it, color = SW.Muted, style = MaterialTheme.typography.labelSmall) }
@@ -153,18 +169,19 @@ fun ProfileScreen() {
         item {
             Spacer(Modifier.height(16.dp))
             Column(
-                Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Card)
-                    .border(1.dp, SW.Line, RoundedCornerShape(24.dp)).padding(18.dp),
+                Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(SW.Surface).padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Category Breakdown", color = SW.Text, style = MaterialTheme.typography.titleMedium)
+                Text("Category breakdown", color = SW.Text, style = MaterialTheme.typography.titleMedium)
                 EWasteCategory.entries.forEach { cat ->
                     val count = byCat[cat] ?: 0
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconBadge(cat.icon, cat.tint, size = 30.dp)
+                        Box(Modifier.size(30.dp).clip(CircleShape).background(cat.tint), contentAlignment = Alignment.Center) {
+                            Icon(cat.icon, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
                         Spacer(Modifier.width(10.dp))
                         Text(cat.shortTitle, color = SW.Subtle, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(96.dp), maxLines = 1)
-                        ProgressBar(count.toFloat() / maxCat, cat.tint, Modifier.weight(1f), height = 8.dp)
+                        ProgressBar(count.toFloat() / maxCat, SW.Ink, Modifier.weight(1f), height = 8.dp)
                         Spacer(Modifier.width(10.dp))
                         Text("$count", color = SW.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(28.dp))
                     }
@@ -174,28 +191,28 @@ fun ProfileScreen() {
 
         // ------------------------------------------------------------- goals
         item {
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(24.dp))
             SectionHeader("Goals")
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             val tierProgress = next?.let {
                 ((lifetime - tier.minLifetimePoints).toFloat() / (it.minLifetimePoints - tier.minLifetimePoints)).coerceIn(0f, 1f)
             } ?: 1f
-            GoalRow(Icons.Rounded.EmojiEvents, "${tier.name} → ${next?.name ?: "Max"}", "$lifetime / ${next?.minLifetimePoints ?: lifetime} pts", tierProgress, SW.Lime)
+            GoalRow(Icons.Outlined.EmojiEvents, "${tier.name} → ${next?.name ?: "Max"}", "$lifetime / ${next?.minLifetimePoints ?: lifetime} pts", tierProgress, 1)
             val monthItems = deposits.filter { it.timestamp >= startOfMonth() }.sumOf { it.quantity }
-            GoalRow(Icons.Rounded.Devices, "Recycle 10 items this month", "$monthItems / 10 items", monthItems / 10f, SW.Mint)
+            GoalRow(Icons.Outlined.Devices, "Recycle 10 items this month", "$monthItems / 10 items", monthItems / 10f, 2)
             val verified = deposits.count { it.verification == "ONLINE_VERIFIED" || it.verification == "CHECKSUM_VALID" || it.verification == "PLAUSIBLE" }
-            GoalRow(Icons.Rounded.VerifiedUser, "Verify 5 deposits", "$verified / 5 verified", verified / 5f, SW.Amber)
+            GoalRow(Icons.Outlined.VerifiedUser, "Verify 5 deposits", "$verified / 5 verified", verified / 5f, 3)
         }
 
         // ----------------------------------------------------------- history
         item {
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(24.dp))
             SectionHeader(
                 "Deposit history",
-                action = if (deposits.size > 4) (if (showAllHistory) "Less" else "View All") else null,
+                action = if (deposits.size > 4) (if (showAllHistory) "Show less" else "See all") else null,
                 onAction = { showAllHistory = !showAllHistory },
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             if (deposits.isEmpty()) {
                 Text(
                     "No deposits yet. Scan an item and drop it in a bin to start earning.",
@@ -207,12 +224,12 @@ fun ProfileScreen() {
 
         // ---------------------------------------------------------- settings
         item {
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(24.dp))
             SectionHeader("Account & settings")
-            Spacer(Modifier.height(10.dp))
-            SettingRow(Icons.Rounded.Edit, user?.name ?: "Your name", user?.email.orEmpty()) { editName = true }
+            Spacer(Modifier.height(12.dp))
+            SettingRow(Icons.Outlined.Edit, user?.name ?: "Your name", user?.email.orEmpty()) { editName = true }
             SettingRow(
-                Icons.Rounded.VpnKey, "AI API key",
+                Icons.Outlined.VpnKey, "AI API key",
                 when {
                     apiKey.isNotBlank() -> "Custom key set (…${apiKey.takeLast(4)})"
                     BuildConfig.OPENROUTER_API_KEY.isNotBlank() -> "Using build key from local.properties"
@@ -220,12 +237,12 @@ fun ProfileScreen() {
                 },
             ) { editKey = true }
             SettingRow(
-                Icons.Rounded.Security, "Data & transparency", "What we collect and how points are calculated",
+                Icons.Outlined.Security, "Data & transparency", "What we collect and how points are calculated",
                 trailing = if (showTransparency) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
             ) { showTransparency = !showTransparency }
             if (showTransparency) TransparencyCard()
-            SettingRow(Icons.Rounded.Info, "About SmartWaste", "v${BuildConfig.VERSION_NAME} · Every recycled item becomes a data point for a cleaner Singapore.") {}
-            SettingRow(Icons.AutoMirrored.Rounded.ExitToApp, "Sign out", "You can sign back in any time", danger = true) { confirmLogout = true }
+            SettingRow(Icons.Outlined.Info, "About SmartWaste", "v${BuildConfig.VERSION_NAME} · Every recycled item becomes a data point for a cleaner Singapore.", trailing = null) {}
+            SettingRow(Icons.AutoMirrored.Outlined.ExitToApp, "Sign out", "You can sign back in any time", danger = true) { confirmLogout = true }
         }
     }
 
@@ -244,12 +261,12 @@ fun ProfileScreen() {
     if (confirmLogout) {
         AlertDialog(
             onDismissRequest = { confirmLogout = false },
-            containerColor = SW.Card,
-            shape = RoundedCornerShape(26.dp),
+            containerColor = SW.Surface,
+            shape = RoundedCornerShape(28.dp),
             title = { Text("Sign out?", color = SW.Text) },
             text = { Text("Your points and history stay saved on this device for when you sign back in.", color = SW.Subtle) },
             confirmButton = {
-                TextButton(onClick = { confirmLogout = false; scope.launch { c.auth.logout() } }) { Text("Sign out", color = SW.Danger, fontWeight = FontWeight.Bold) }
+                TextButton(onClick = { confirmLogout = false; scope.launch { c.auth.logout() } }) { Text("Sign out", color = SW.Danger, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Cancel", color = SW.Muted) } },
         )
@@ -281,21 +298,20 @@ private fun axisLabels(period: Period): List<String> {
 }
 
 @Composable
-private fun GoalRow(icon: ImageVector, title: String, detail: String, progress: Float, tint: androidx.compose.ui.graphics.Color) {
+private fun GoalRow(icon: ImageVector, title: String, detail: String, progress: Float, seed: Int) {
     Row(
-        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(20.dp)).padding(14.dp),
+        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Surface).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBadge(icon, tint, size = 40.dp)
+        Box(Modifier.size(width = 64.dp, height = 54.dp).clip(RoundedCornerShape(14.dp))) {
+            CoverArt(Tones.all[seed % Tones.all.size], Modifier.matchParentSize(), seed = seed * 13, icon = icon, iconSize = 22.dp)
+        }
         Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Row {
-                Text(title, color = SW.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
-                Text(detail, color = SW.Muted, style = MaterialTheme.typography.labelSmall)
-            }
+        Column(Modifier.weight(1f).padding(end = 6.dp)) {
+            Text(detail, color = SW.Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            Text(title, color = SW.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(8.dp))
-            ProgressBar(progress.coerceIn(0f, 1f), tint)
+            ProgressBar(progress.coerceIn(0f, 1f), SW.Ink)
         }
     }
 }
@@ -304,27 +320,18 @@ private fun GoalRow(icon: ImageVector, title: String, detail: String, progress: 
 private fun DepositRow(d: DepositEntity) {
     val cat = EWasteCategory.fromKey(d.category)
     val verified = d.verification == "ONLINE_VERIFIED" || d.verification == "CHECKSUM_VALID" || d.verification == "PLAUSIBLE"
-    Row(
-        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(20.dp)).padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconBadge(cat?.icon ?: Icons.Rounded.Devices, cat?.tint ?: SW.Lime, size = 42.dp)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text("${d.itemName}${if (d.quantity > 1) " × ${d.quantity}" else ""}", style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                "${d.placeName} · ${SimpleDateFormat("d MMM, h:mm a", Locale.getDefault()).format(Date(d.timestamp))}",
-                style = MaterialTheme.typography.labelSmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (verified) TintTag("Verified", SW.Lime, icon = Icons.Rounded.VerifiedUser) else TintTag("Unverified", SW.Muted)
-                if (d.binProof == "QR") TintTag("Smart bin", SW.Mint)
+    DayCard(
+        overline = "${SimpleDateFormat("d MMM, h:mm a", Locale.getDefault()).format(Date(d.timestamp))} · ${if (verified) "Verified" else "Unverified"}${if (d.binProof == "QR") " · Smart bin" else ""}",
+        title = "${d.itemName}${if (d.quantity > 1) " × ${d.quantity}" else ""} at ${d.placeName}",
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
+        trailing = { Text("+${d.points}", style = MaterialTheme.typography.titleMedium, color = SW.Text) },
+        thumbnail = {
+            CoverArt(cat?.tones ?: Tones.Forest, Modifier.matchParentSize(), seed = d.id.hashCode(), icon = cat?.icon ?: Icons.Rounded.Eco, iconSize = 24.dp)
+            d.photoPath?.let { path ->
+                AsyncImage(File(path), null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
             }
-        }
-        Text("+${d.points}", style = MaterialTheme.typography.titleMedium, color = SW.Lime)
-    }
+        },
+    )
 }
 
 @Composable
@@ -332,41 +339,57 @@ private fun SettingRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    trailing: ImageVector? = null,
+    trailing: ImageVector? = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
     danger: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
-        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(14.dp),
+        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Surface)
+            .clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBadge(icon, if (danger) SW.Danger else SW.Lime, size = 40.dp)
+        Box(
+            Modifier.size(44.dp).clip(CircleShape).background(if (danger) SW.DangerSoft else SW.SurfaceAlt),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, null, tint = if (danger) SW.Danger else SW.Text, modifier = Modifier.size(20.dp))
+        }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = if (danger) SW.Danger else SW.Text)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = SW.Muted)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SW.Muted)
         }
-        trailing?.let { Icon(it, null, tint = SW.Muted) }
+        trailing?.let { Icon(it, null, tint = SW.Text, modifier = Modifier.padding(start = 6.dp)) }
     }
 }
 
 @Composable
 private fun TransparencyCard() {
     Column(
-        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(SW.OliveDark)
-            .border(1.dp, SW.Lime.copy(alpha = 0.2f), RoundedCornerShape(20.dp)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Surface).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Data we keep (on this device)", style = MaterialTheme.typography.titleSmall, color = SW.Lime)
-        Text("• Your name, email and a salted password hash (never the password itself)\n• Bin ID, timestamp, item category, quantity, points\n• Your proof photo and a one-way hash of scanned codes (to stop re-use)", color = SW.Subtle, style = MaterialTheme.typography.bodySmall)
-        Text("Sent to third parties", style = MaterialTheme.typography.titleSmall, color = SW.Lime)
-        Text("• Photos go to the AI provider (OpenRouter) only for identification and proof checks\n• Barcodes go to UPCitemdb / Open Products Facts for product lookup\n• Location is used for nearby places and routing (OpenStreetMap services)", color = SW.Subtle, style = MaterialTheme.typography.bodySmall)
-        Text("How points work", style = MaterialTheme.typography.titleSmall, color = SW.Lime)
-        Text(
-            "Base points per category × quantity\n× 1.2 if you scan a SmartWaste bin QR\n× 0.6 if AI can't confirm the bin photo\n+ verification bonus: online-verified barcode +100%, IMEI/barcode checksum +80%, plausible serial +50%, none 0%\nCodes already used earn no bonus · max 10 deposits per day",
-            color = SW.Subtle, style = MaterialTheme.typography.bodySmall,
+        TransparencyBlock(
+            "Data we keep (on this device)",
+            "• Your name, email and a salted password hash (never the password itself)\n• Bin ID, timestamp, item category, quantity, points\n• Your proof photo and a one-way hash of scanned codes (to stop re-use)",
         )
+        TransparencyBlock(
+            "Sent to third parties",
+            "• Photos go to the AI provider (OpenRouter) only for identification and proof checks\n• Barcodes go to UPCitemdb / Open Products Facts for product lookup\n• Location is used for nearby places and routing (OpenStreetMap services)",
+        )
+        TransparencyBlock(
+            "How points work",
+            "Base points per category × quantity\n× 1.2 if you scan a SmartWaste bin QR\n× 0.6 if AI can't confirm the bin photo\n+ verification bonus: online-verified barcode +100%, IMEI/barcode checksum +80%, plausible serial +50%, none 0%\nCodes already used earn no bonus · max 10 deposits per day",
+        )
+    }
+}
+
+@Composable
+private fun TransparencyBlock(label: String, text: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = SW.Muted)
+        Spacer(Modifier.height(2.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = SW.Text)
     }
 }
 
@@ -382,19 +405,19 @@ private fun TextDialog(
     var value by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SW.Card,
-        shape = RoundedCornerShape(26.dp),
+        containerColor = SW.Surface,
+        shape = RoundedCornerShape(28.dp),
         title = { Text(title, color = SW.Text) },
         text = {
             Column {
                 OutlinedTextField(
                     value = value, onValueChange = { value = it }, singleLine = true,
                     visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
-                    shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = SW.Lime, unfocusedBorderColor = SW.Line,
-                        focusedContainerColor = SW.Field, unfocusedContainerColor = SW.Field,
-                        focusedTextColor = SW.Text, unfocusedTextColor = SW.Text, cursorColor = SW.Lime,
+                        focusedBorderColor = SW.Ink, unfocusedBorderColor = SW.SurfaceAlt,
+                        focusedContainerColor = SW.SurfaceAlt, unfocusedContainerColor = SW.SurfaceAlt,
+                        focusedTextColor = SW.Text, unfocusedTextColor = SW.Text, cursorColor = SW.Ink,
                     ),
                 )
                 hint?.let {
@@ -403,7 +426,7 @@ private fun TextDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(value) }) { Text("Save", color = SW.Lime) } },
+        confirmButton = { TextButton(onClick = { onSave(value) }) { Text("Save", color = SW.Ink, fontWeight = FontWeight.SemiBold) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = SW.Muted) } },
     )
 }
