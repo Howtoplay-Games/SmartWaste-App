@@ -1,11 +1,15 @@
 package sg.smartwaste.app.ui.home
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,8 +24,11 @@ import sg.smartwaste.app.data.model.PlaceWithDistance
 import sg.smartwaste.app.data.rewards.RewardsCatalog
 import sg.smartwaste.app.data.rewards.Tier
 import sg.smartwaste.app.util.Geo
-import sg.smartwaste.app.util.GeoPoint
+import sg.smartwaste.app.util.RefreshGate
 import java.util.Calendar
+
+/** Minimum time between automatic Home refreshes (location + places). */
+private const val REFRESH_INTERVAL_MS = 60_000L
 
 data class HomeState(
     val name: String = "",
@@ -47,7 +54,8 @@ data class HomeState(
 
 class HomeViewModel(private val c: AppContainer) : ViewModel() {
 
-    private val origin = MutableStateFlow<GeoPoint?>(c.location.last.value?.point)
+    /** Latest fix from anywhere in the app (Home refreshes, Map tracking, deposit checks). */
+    private val origin = c.location.last.map { it?.point }.distinctUntilChanged()
     val category = MutableStateFlow<EWasteCategory?>(null)
 
     private val name = c.auth.session.map { (it as? SessionState.SignedIn)?.user?.name.orEmpty() }
@@ -93,13 +101,52 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
             redeemableCount = RewardsCatalog.rewards.count { it.cost <= balance },
             nearlyFullBins = places.count { it.isSmartBin && (it.fillLevel ?: 0) >= 75 },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
+    }
+        // Sorting every place by distance on each update is list work, not UI work.
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 
-    fun refreshLocation() {
+    /**
+     * Home re-enters composition on every tab switch. Without the gate, each visit started a
+     * new high-accuracy GPS request (up to 12 s) and a places refresh.
+     */
+    private val refreshGate = RefreshGate(minIntervalMs = REFRESH_INTERVAL_MS, clock = SystemClock::elapsedRealtime)
+    private var hadPermission = c.location.hasPermission()
+    /** A forced refresh arrived while another one was running; run it when that one ends. */
+    private var forcedPending = false
+
+    /** True once the location prompt has been shown, so returning to Home doesn't ask again. */
+    var locationPromptShown = false
+        private set
+
+    fun onLocationPromptShown() {
+        locationPromptShown = true
+    }
+
+    /**
+     * Gets a fresh fix and refreshes nearby places. [force] bypasses the time limit; permission
+     * granted since the last refresh (here or on another screen) forces one too.
+     */
+    fun refreshLocation(force: Boolean = false) {
+        val granted = c.location.hasPermission()
+        val forced = force || (granted && !hadPermission)
+        if (!refreshGate.tryStart(forced)) {
+            if (forced) forcedPending = true
+            return
+        }
+        hadPermission = granted
         viewModelScope.launch {
-            val fix = c.location.current()
-            if (fix != null) origin.value = fix.point
-            c.places.refresh(fix?.point ?: Geo.SINGAPORE)
+            try {
+                // current() also publishes the fix to location.last, which feeds `origin`.
+                val fix = c.location.current()
+                c.places.refresh(fix?.point ?: Geo.SINGAPORE)
+            } finally {
+                refreshGate.finish()
+                if (forcedPending) {
+                    forcedPending = false
+                    refreshLocation(force = true)
+                }
+            }
         }
     }
 

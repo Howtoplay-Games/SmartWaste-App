@@ -47,14 +47,18 @@ class LocationClient(private val context: Context) {
     @SuppressLint("MissingPermission")
     suspend fun current(): LocationFix? {
         if (!hasPermission()) return null
-        return runCatching {
-            val token = CancellationTokenSource()
-            val loc = withTimeoutOrNull(12_000) {
-                fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token).await()
-            } ?: fused.lastLocation.await()
-            if (loc == null) token.cancel()
-            loc?.toFix()?.also { _last.value = it }
-        }.getOrNull()
+        val token = CancellationTokenSource()
+        return try {
+            runCatching {
+                val loc = withTimeoutOrNull(12_000) {
+                    fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token).await()
+                } ?: fused.lastLocation.await()
+                loc?.toFix()?.also { _last.value = it }
+            }.getOrNull()
+        } finally {
+            // Timing out only stops waiting; cancelling the token also stops the GPS request.
+            token.cancel()
+        }
     }
 
     @SuppressLint("MissingPermission")

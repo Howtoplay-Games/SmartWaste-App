@@ -94,6 +94,7 @@ import sg.smartwaste.app.data.model.PlaceWithDistance
 import sg.smartwaste.app.data.routing.Route
 import sg.smartwaste.app.data.routing.RouteStep
 import sg.smartwaste.app.data.routing.TravelMode
+import sg.smartwaste.app.ui.components.AiSupportFab
 import sg.smartwaste.app.ui.components.CircleIconButton
 import sg.smartwaste.app.ui.components.CoverArt
 import sg.smartwaste.app.ui.components.DragHandle
@@ -128,6 +129,7 @@ fun MapScreen(
     placeId: String?,
     query: String?,
     onVerifyDeposit: (placeId: String) -> Unit,
+    onOpenChat: () -> Unit,
 ) {
     val vm = appViewModel { MapViewModel(it) }
     val s by vm.state.collectAsStateWithLifecycle()
@@ -138,7 +140,11 @@ fun MapScreen(
     val permission = rememberPermissionState(*LOCATION_PERMISSIONS) { granted -> if (granted) vm.startTracking() }
     LaunchedEffect(Unit) {
         vm.applyArgs(mode, category, auto, placeId, query)
-        if (!permission.granted) permission.request()
+        // Ask once per map session, not on every return to the Map tab.
+        if (!permission.granted && !vm.locationPromptShown) {
+            vm.onLocationPromptShown()
+            permission.request()
+        }
     }
     DisposableEffect(permission.granted) {
         if (permission.granted) vm.startTracking()
@@ -202,31 +208,8 @@ fun MapScreen(
             }
         }
 
-        // -------------------------------------------------- floating controls
-        Column(
-            Modifier.align(Alignment.CenterEnd).padding(end = 16.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CircleIconButton(
-                Icons.Outlined.MyLocation, "My location", vm::recenter,
-                modifier = Modifier.shadow(8.dp, CircleShape),
-                container = if (s.following) SW.Ink else SW.Surface,
-                content = if (s.following) SW.OnInk else SW.Text,
-                size = 48.dp,
-            )
-            CircleIconButton(
-                Icons.Outlined.Refresh, "Refresh places", vm::refresh,
-                modifier = Modifier.shadow(8.dp, CircleShape), size = 48.dp,
-            )
-            if (s.loading) {
-                Box(Modifier.size(48.dp).clip(CircleShape).background(SW.Surface), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = SW.Ink)
-                }
-            }
-        }
-
         // -------------------------------------------------------- bottom area
-        Box(
+        Column(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -238,6 +221,40 @@ fun MapScreen(
                 s.route != null || s.routeLoading -> "route"
                 s.selected != null -> "detail"
                 else -> "list"
+            }
+            // Map controls sit in a row just above the bottom panel, so the two never cover each
+            // other. The tall place and route sheets leave no room, so the row hides for them.
+            if (panel == "list" || panel == "nav") {
+                Row(
+                    Modifier.align(Alignment.End).padding(end = 16.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (panel == "list") {
+                        if (s.loading) {
+                            Box(
+                                Modifier.size(48.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(SW.Surface),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = SW.Ink)
+                            }
+                        }
+                        CircleIconButton(
+                            Icons.Outlined.Refresh, "Refresh places", vm::refresh,
+                            modifier = Modifier.shadow(8.dp, CircleShape), size = 48.dp,
+                        )
+                    }
+                    CircleIconButton(
+                        Icons.Outlined.MyLocation, "My location",
+                        // After a denial, this is the way to be asked again.
+                        { if (permission.granted) vm.recenter() else permission.request() },
+                        modifier = Modifier.shadow(8.dp, CircleShape),
+                        container = if (s.following) SW.Ink else SW.Surface,
+                        content = if (s.following) SW.OnInk else SW.Text,
+                        size = 48.dp,
+                    )
+                    if (panel == "list") AiSupportFab(onClick = onOpenChat)
+                }
             }
             AnimatedContent(
                 targetState = panel,

@@ -61,6 +61,14 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
     private val _camera = MutableStateFlow<CameraRequest?>(null)
     val camera: StateFlow<CameraRequest?> = _camera.asStateFlow()
 
+    /** True once the location prompt has been shown, so returning to the map doesn't ask again. */
+    var locationPromptShown = false
+        private set
+
+    fun onLocationPromptShown() {
+        locationPromptShown = true
+    }
+
     private var trackingJob: Job? = null
     private var autoNearestPending = false
     private var pendingPlaceId: String? = null

@@ -1,7 +1,10 @@
 package sg.smartwaste.app.ui.scan
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,7 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import sg.smartwaste.app.AppContainer
+import sg.smartwaste.app.util.ImageUtils
 import java.io.File
 
 data class ScanUiState(
@@ -33,6 +38,19 @@ class ScanViewModel(private val c: AppContainer) : ViewModel() {
         "Checking battery & safety hazards…",
         "Estimating resale value…",
     )
+
+    /** Copies a gallery photo into app storage (off the main thread: it can be several MB), then analyses it. */
+    fun analyzePicked(appContext: Context, uri: Uri) {
+        if (_state.value.analyzing) return
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.IO) { ImageUtils.copyUriToFile(appContext, uri, "scan") }
+            if (file == null) {
+                _state.update { it.copy(error = "Couldn't read that photo. Try another one.") }
+            } else {
+                analyze(file)
+            }
+        }
+    }
 
     fun analyze(file: File) {
         if (_state.value.analyzing) return

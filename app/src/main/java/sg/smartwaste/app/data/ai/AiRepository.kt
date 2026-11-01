@@ -1,6 +1,8 @@
 package sg.smartwaste.app.data.ai
 
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import sg.smartwaste.app.BuildConfig
@@ -36,7 +38,7 @@ class AiRepository(
 
     /** Identifies e-waste in a photo: cloud vision models first, on-device ML Kit as backup. */
     suspend fun detect(photo: File): DetectionResult {
-        val base64 = ImageUtils.toBase64Jpeg(photo, maxDim = 1024)
+        val base64 = encodePhoto(photo, maxDim = 1024)
             ?: return onDevice.classify(photo, "the photo could not be read")
         return try {
             val completion = client.complete(
@@ -57,7 +59,7 @@ class AiRepository(
 
     /** Checks the deposit proof photo shows a collection bin (and ideally the item). */
     suspend fun checkBinPhoto(photo: File, expected: EWasteCategory?, itemName: String?): BinPhotoCheck {
-        val base64 = ImageUtils.toBase64Jpeg(photo, maxDim = 896)
+        val base64 = encodePhoto(photo, maxDim = 896)
         if (base64 != null) {
             try {
                 val completion = client.complete(
@@ -132,6 +134,10 @@ class AiRepository(
             ChatTurn(fromUser = false, text = KnowledgeBase.offlineAnswer(question) + "\n\n(Offline answer: AI is unreachable right now.)")
         }
     }
+
+    /** Decoding, scaling and JPEG-encoding a camera photo takes hundreds of ms, so keep it off the main thread. */
+    private suspend fun encodePhoto(photo: File, maxDim: Int): String? =
+        withContext(Dispatchers.Default) { ImageUtils.toBase64Jpeg(photo, maxDim = maxDim) }
 
     private fun DetectionDto.toResult(model: String, photo: File): DetectionResult {
         val cat = EWasteCategory.fromKey(category)

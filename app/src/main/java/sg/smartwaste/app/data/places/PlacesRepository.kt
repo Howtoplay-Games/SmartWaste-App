@@ -139,16 +139,8 @@ class PlacesRepository(
 
     // ---------------------------------------------------------------- merging
 
-    private fun merge(): List<Place> {
-        val result = ArrayList<Place>(CuratedPlaces.smartBins())
-        result.addAll(curated)
-        // Live sources are added only if they're not duplicates of a known place.
-        for (p in nea + osm) {
-            val dup = result.any { it.type == p.type && Geo.distanceMeters(it.point, p.point) < 40 }
-            if (!dup) result.add(p)
-        }
-        return result
-    }
+    // Live sources are added only if they're not duplicates of a known place (see mergePlaces).
+    private fun merge(): List<Place> = mergePlaces(CuratedPlaces.smartBins() + curated, nea + osm)
 
     // --------------------------------------------------------------- OneMap
 

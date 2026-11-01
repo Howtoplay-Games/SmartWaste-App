@@ -121,6 +121,7 @@ private fun MainApp() {
                     placeId = args?.getString("place")?.ifBlank { null },
                     query = args?.getString("q")?.ifBlank { null },
                     onVerifyDeposit = { id -> nav.navigate(Routes.deposit(place = id)) },
+                    onOpenChat = { chatOpen = true },
                 )
             }
             composable(Routes.SCAN) {
@@ -171,8 +172,9 @@ private fun MainApp() {
             PillBottomBar(barItems, route, onSelect = { nav.switchTab(it.route) })
         }
 
+        // The map shows its own AI button inside its control column, clear of the place cards.
         AnimatedVisibility(
-            visible = route != null && !chatOpen,
+            visible = route != null && route != Routes.MAP && !chatOpen,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
@@ -189,7 +191,6 @@ private fun MainApp() {
 
 /** Keeps the AI button in the bottom-right corner, clear of the nav bar and bottom panels. */
 private fun fabBottomPadding(route: String?, showBar: Boolean) = when {
-    route == Routes.MAP -> 400.dp
     route == Routes.RESULT -> 150.dp
     showBar -> 102.dp
     else -> 20.dp

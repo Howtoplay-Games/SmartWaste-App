@@ -1,6 +1,7 @@
 package sg.smartwaste.app.ui.camera
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -23,6 +24,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import sg.smartwaste.app.data.verify.ProductVerifier
+import sg.smartwaste.app.util.FrameThrottle
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -108,6 +110,10 @@ class CodeAnalyzer(
 
     private val barcodes = BarcodeScanning.getClient()
     private val textRecognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    /** Caps the whole ML pipeline; without it the analyzer starts a new pass as soon as one ends. */
+    private val frameThrottle = FrameThrottle(FRAME_INTERVAL_MS)
+    /** OCR is far more expensive than barcode scanning, so it runs on a few frames per second only. */
+    private val ocrThrottle = FrameThrottle(OCR_INTERVAL_MS)
     @Volatile private var busy = false
     @Volatile private var paused = false
     private var lastTextCandidate: String? = null
@@ -119,7 +125,7 @@ class CodeAnalyzer(
     @androidx.annotation.OptIn(ExperimentalGetImage::class)
     override fun analyze(proxy: ImageProxy) {
         val media = proxy.image
-        if (media == null || busy || paused) {
+        if (media == null || busy || paused || !frameThrottle.tryAcquire(SystemClock.elapsedRealtime())) {
             proxy.close(); return
         }
         busy = true
@@ -129,7 +135,7 @@ class CodeAnalyzer(
             if (code != null) {
                 if (!paused) onCode(ScannedCode.Bar(code.rawValue!!.trim(), code.format))
                 finish(proxy)
-            } else if (readText) {
+            } else if (readText && ocrThrottle.tryAcquire(SystemClock.elapsedRealtime())) {
                 textRecognizer.process(input).addOnCompleteListener { t ->
                     if (t.isSuccessful) {
                         val candidate = SerialExtractor.extract(t.result.text)
@@ -155,6 +161,12 @@ class CodeAnalyzer(
     }
 
     companion object {
+        /** Every 3rd frame of a 30 fps camera (~10 per second): plenty for barcodes and QR codes. */
+        const val FRAME_INTERVAL_MS = 90L
+
+        /** About 3 OCR passes per second is enough to read a held-still label. */
+        const val OCR_INTERVAL_MS = 350L
+
         val analysisExecutor = Executors.newSingleThreadExecutor()
         fun isQr(code: ScannedCode) = code is ScannedCode.Bar && code.format == Barcode.FORMAT_QR_CODE
     }

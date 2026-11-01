@@ -72,6 +72,7 @@ import sg.smartwaste.app.data.db.DepositEntity
 import sg.smartwaste.app.data.model.EWasteCategory
 import sg.smartwaste.app.data.model.PlaceType
 import sg.smartwaste.app.data.model.PlaceWithDistance
+import sg.smartwaste.app.ui.components.bottomContentPadding
 import sg.smartwaste.app.ui.components.Avatar
 import sg.smartwaste.app.ui.components.CircleIconButton
 import sg.smartwaste.app.ui.components.CoverArt
@@ -121,18 +122,24 @@ fun HomeScreen(
     val s by vm.state.collectAsStateWithLifecycle()
     val selectedCategory by vm.category.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val permission = rememberPermissionState(*LOCATION_PERMISSIONS) { vm.refreshLocation() }
+    val permission = rememberPermissionState(*LOCATION_PERMISSIONS) { granted -> vm.refreshLocation(force = granted) }
     var showUpdates by remember { mutableStateOf(false) }
     val fmt = NumberFormat.getIntegerInstance(Locale.US)
     val month = SimpleDateFormat("MMMM", Locale.US).format(Date())
 
+    // Runs on every return to Home; the ViewModel throttles the refresh and the prompt is shown once.
     LaunchedEffect(Unit) {
-        if (permission.granted) vm.refreshLocation() else permission.request()
+        if (permission.granted || vm.locationPromptShown) {
+            vm.refreshLocation()
+        } else {
+            vm.onLocationPromptShown()
+            permission.request()
+        }
     }
 
     LazyColumn(
         Modifier.fillMaxSize().background(SW.Bg),
-        contentPadding = PaddingValues(bottom = 130.dp),
+        contentPadding = PaddingValues(bottom = bottomContentPadding()),
     ) {
         // ------------------------------------------------ greeting + search
         item {
