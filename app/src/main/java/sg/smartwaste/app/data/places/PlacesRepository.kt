@@ -32,6 +32,7 @@ import sg.smartwaste.app.data.model.PlaceType
 import sg.smartwaste.app.data.model.PlaceWithDistance
 import sg.smartwaste.app.util.Geo
 import sg.smartwaste.app.util.GeoPoint
+import sg.smartwaste.app.util.ServiceArea
 import java.io.IOException
 
 data class PlacesStatus(
@@ -99,8 +100,13 @@ class PlacesRepository(
         .take(limit)
         .toList()
 
-    /** Refreshes live sources around [center]. Safe to call often; results are throttled. */
-    suspend fun refresh(center: GeoPoint, force: Boolean = false) = mutex.withLock {
+    /**
+     * Refreshes live sources around [requestedCenter]. Safe to call often; results are throttled.
+     * A centre outside Singapore is replaced by the city centre, so OpenStreetMap is never asked
+     * for recycling points on another continent (they'd be merged in as "nearest" bins).
+     */
+    suspend fun refresh(requestedCenter: GeoPoint, force: Boolean = false) = mutex.withLock {
+        val center = ServiceArea.origin(requestedCenter)
         withContext(Dispatchers.IO) {
             _status.update { it.copy(loading = true, lastError = null) }
             var error: String? = null

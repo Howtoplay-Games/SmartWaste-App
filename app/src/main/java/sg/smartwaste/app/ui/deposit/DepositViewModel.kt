@@ -19,6 +19,7 @@ import sg.smartwaste.app.data.verify.VerificationLevel
 import sg.smartwaste.app.data.verify.VerificationOutcome
 import sg.smartwaste.app.util.Geo
 import sg.smartwaste.app.util.Hashing
+import sg.smartwaste.app.util.ServiceArea
 import java.io.File
 
 enum class DepositStep(val label: String) { LOCATION("At the bin"), PHOTO("Photo proof"), VERIFY("Verify item"), DONE("Done") }
@@ -55,7 +56,7 @@ class DepositViewModel(private val c: AppContainer) : ViewModel() {
         val detection = c.session.detection.value
         val category = detection?.category?.takeIf { it.binFriendly }
         val place = placeId?.takeIf { it.isNotBlank() }?.let { c.places.byId(it) }
-        val from = c.location.last.value?.point ?: Geo.SINGAPORE
+        val from = ServiceArea.origin(c.location.last.value?.point)
         _state.update {
             it.copy(
                 category = category,
@@ -102,6 +103,13 @@ class DepositViewModel(private val c: AppContainer) : ViewModel() {
                 _state.update { it.copy(checkingLocation = false, error = "Mock locations aren't allowed for earning points.") }
                 return@launch
             }
+            if (!fix.inServiceArea) {
+                // Otherwise this reads "You're 13,612 km from …": every bin is in Singapore.
+                _state.update {
+                    it.copy(checkingLocation = false, error = "Your location is outside Singapore, so GPS can't confirm you're at a SmartWaste bin.")
+                }
+                return@launch
+            }
             runCatching { c.places.refresh(fix.point) }
             val chosen = _state.value.target?.place
             val candidates = if (chosen != null) listOf(PlaceWithDistance(chosen, Geo.distanceMeters(fix.point, chosen.point)))
@@ -135,10 +143,16 @@ class DepositViewModel(private val c: AppContainer) : ViewModel() {
             _state.update { it.copy(error = "Unknown SmartWaste bin QR code.") }
             return
         }
-        val from = c.location.last.value?.point
+        val last = c.location.last.value
+        val from = last?.point
         // Sanity check: a QR scanned far away from its bin (e.g. a photo of the QR) is rejected.
-        if (from != null && Geo.distanceMeters(from, place.point) > 2_000) {
-            _state.update { it.copy(error = "This QR belongs to ${place.name}, which is far from your location.") }
+        if (last != null && Geo.distanceMeters(last.point, place.point) > 2_000) {
+            _state.update {
+                it.copy(
+                    error = if (last.inServiceArea) "This QR belongs to ${place.name}, which is far from your location."
+                    else "This QR belongs to ${place.name} in Singapore, but your location is outside Singapore.",
+                )
+            }
             return
         }
         val category = _state.value.category

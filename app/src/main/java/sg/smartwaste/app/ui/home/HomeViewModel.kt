@@ -54,8 +54,11 @@ data class HomeState(
 
 class HomeViewModel(private val c: AppContainer) : ViewModel() {
 
-    /** Latest fix from anywhere in the app (Home refreshes, Map tracking, deposit checks). */
-    private val origin = c.location.last.map { it?.point }.distinctUntilChanged()
+    /**
+     * Latest fix from anywhere in the app (Home refreshes, Map tracking, deposit checks), or null
+     * when there is none or it's outside Singapore. Null makes Home measure from the city centre.
+     */
+    private val origin = c.location.last.map { fix -> fix?.takeIf { it.inServiceArea }?.point }.distinctUntilChanged()
     val category = MutableStateFlow<EWasteCategory?>(null)
 
     private val name = c.auth.session.map { (it as? SessionState.SignedIn)?.user?.name.orEmpty() }

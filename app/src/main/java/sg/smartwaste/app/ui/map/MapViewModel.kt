@@ -21,6 +21,7 @@ import sg.smartwaste.app.data.routing.RouteStep
 import sg.smartwaste.app.data.routing.TravelMode
 import sg.smartwaste.app.util.Geo
 import sg.smartwaste.app.util.GeoPoint
+import sg.smartwaste.app.util.ServiceArea
 
 enum class MapFilter(val label: String) { ALL("All"), BINS("Bins"), BUYERS("Buyers") }
 
@@ -42,6 +43,8 @@ data class MapUiState(
     val user: LocationFix? = null,
     val selected: PlaceWithDistance? = null,
     val route: Route? = null,
+    /** True when [route] starts at the user's fix; false when it starts at the city centre. */
+    val routeFromUser: Boolean = false,
     val routeLoading: Boolean = false,
     val mode: TravelMode = TravelMode.WALK,
     val nav: NavProgress = NavProgress(),
@@ -136,8 +139,11 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
         _state.update { it.copy(user = fix) }
         if (firstFix) {
             firstFix = false
-            viewModelScope.launch { c.places.refresh(fix.point) }
-            if (_state.value.selected == null && !autoNearestPending) {
+            viewModelScope.launch { c.places.refresh(origin()) }
+            if (!fix.inServiceArea) {
+                // Keep the map on Singapore and say why distances don't start at the blue dot.
+                _state.update { it.copy(message = ServiceArea.OUTSIDE_MESSAGE) }
+            } else if (_state.value.selected == null && !autoNearestPending) {
                 _camera.value = CameraRequest.Focus(fix.point, 14.5)
             }
         }
@@ -151,7 +157,11 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
 
     // ----------------------------------------------------------- filtering
 
-    private fun origin(): GeoPoint = _state.value.user?.point ?: Geo.SINGAPORE
+    /** The user's fix if it's in Singapore, otherwise the city centre. */
+    private fun origin(): GeoPoint = ServiceArea.origin(_state.value.user?.point)
+
+    /** A fix that can be used for routing and navigation (present and in Singapore). */
+    private fun usableFix(): LocationFix? = _state.value.user?.takeIf { it.inServiceArea }
 
     private fun recompute(all: List<Place>) {
         val s = _state.value
@@ -256,11 +266,16 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
 
     fun requestRoute(keepNavigating: Boolean = false) {
         val target = _state.value.selected?.place ?: return
-        val from = _state.value.user?.point
-        if (from == null) {
-            _state.update { it.copy(message = "Turn on location for routes from where you are. Showing from Singapore centre.") }
+        val fix = usableFix()
+        if (fix == null) {
+            _state.update {
+                it.copy(
+                    message = if (it.user != null) ServiceArea.OUTSIDE_MESSAGE
+                    else "Turn on location for routes from where you are. Showing from the city centre.",
+                )
+            }
         }
-        val start = from ?: Geo.SINGAPORE
+        val start = fix?.point ?: Geo.SINGAPORE
         _state.update { it.copy(routeLoading = true) }
         viewModelScope.launch {
             val route = c.routing.route(start, target.point, _state.value.mode)
@@ -268,6 +283,7 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
             _state.update {
                 it.copy(
                     route = route,
+                    routeFromUser = fix != null,
                     routeLoading = false,
                     nav = if (keepNavigating) it.nav.copy(rerouting = false) else NavProgress(
                         remainingM = route.distanceMeters, remainingS = route.durationSeconds,
@@ -282,13 +298,23 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
 
     fun startNavigation() {
         val route = _state.value.route ?: return
+        // Turn-by-turn tracks the user along the route, so it needs a route that starts at them.
+        if (!_state.value.routeFromUser) {
+            _state.update {
+                it.copy(
+                    message = if (it.user != null) "Turn-by-turn needs your location in Singapore. Try Google Maps instead."
+                    else "Turn on location to start turn-by-turn navigation.",
+                )
+            }
+            return
+        }
         _state.update {
             it.copy(
                 following = true,
                 nav = it.nav.copy(active = true, arrived = false, remainingM = route.distanceMeters, remainingS = route.durationSeconds),
             )
         }
-        _state.value.user?.let { updateNavigation(it) } ?: run {
+        usableFix()?.let { updateNavigation(it) } ?: run {
             _camera.value = CameraRequest.Follow(route.points.first(), 0.0)
         }
     }
@@ -299,13 +325,17 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
 
     fun recenter() {
         val user = _state.value.user
-        if (_state.value.nav.active) {
-            _state.update { it.copy(following = true) }
-            user?.let { updateNavigation(it) }
-        } else if (user != null) {
-            _camera.value = CameraRequest.Focus(user.point, 15.5)
-        } else {
-            _state.update { it.copy(message = "Location unavailable. Enable location permission.") }
+        when {
+            _state.value.nav.active -> {
+                _state.update { it.copy(following = true) }
+                usableFix()?.let { updateNavigation(it) }
+            }
+            user == null -> _state.update { it.copy(message = "Location unavailable. Enable location permission.") }
+            !user.inServiceArea -> {
+                _state.update { it.copy(message = ServiceArea.OUTSIDE_MESSAGE) }
+                _camera.value = CameraRequest.Focus(Geo.SINGAPORE, 11.0)
+            }
+            else -> _camera.value = CameraRequest.Focus(user.point, 15.5)
         }
     }
 
@@ -334,6 +364,8 @@ class MapViewModel(private val c: AppContainer) : ViewModel() {
         val s = _state.value
         val route = s.route ?: return
         if (!s.nav.active || route.points.isEmpty()) return
+        // A fix outside Singapore would look "off route" every time and re-route in a loop.
+        if (!fix.inServiceArea) return
         val target = s.selected?.place ?: return
 
         val toDest = Geo.distanceMeters(fix.point, target.point)
