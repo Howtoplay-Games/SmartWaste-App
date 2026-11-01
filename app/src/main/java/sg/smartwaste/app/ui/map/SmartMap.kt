@@ -1,5 +1,7 @@
 package sg.smartwaste.app.ui.map
 
+import android.content.ComponentCallbacks2
+import android.content.res.Configuration
 import android.graphics.RectF
 import android.view.Gravity
 import androidx.compose.runtime.Composable
@@ -96,26 +98,49 @@ fun SmartMap(
     val mapClick by rememberUpdatedState(onMapClick)
     val gesture by rememberUpdatedState(onUserGesture)
 
-    // Forward lifecycle events to the MapView, tracking state so teardown is balanced.
-    DisposableEffect(lifecycle, mapView) {
-        var started = false
-        var resumed = false
+    // One guard per MapView keeps start/resume/pause/stop balanced and onDestroy to a single call.
+    val mapLifecycle = remember(mapView) {
+        MapLifecycle(mapView::onStart, mapView::onResume, mapView::onPause, mapView::onStop, mapView::onDestroy)
+    }
+
+    // Forward lifecycle events only. Destroying here would also run when `lifecycle` changes,
+    // leaving a destroyed map that the next observer starts again and a second onDestroy later.
+    DisposableEffect(lifecycle, mapLifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> if (!started) { mapView.onStart(); started = true }
-                Lifecycle.Event.ON_RESUME -> if (!resumed) { mapView.onResume(); resumed = true }
-                Lifecycle.Event.ON_PAUSE -> if (resumed) { mapView.onPause(); resumed = false }
-                Lifecycle.Event.ON_STOP -> if (started) { mapView.onStop(); started = false }
+                Lifecycle.Event.ON_START -> mapLifecycle.start()
+                Lifecycle.Event.ON_RESUME -> mapLifecycle.resume()
+                Lifecycle.Event.ON_PAUSE -> mapLifecycle.pause()
+                Lifecycle.Event.ON_STOP -> mapLifecycle.stop()
                 else -> Unit
             }
         }
-        lifecycle.addObserver(observer)
-        onDispose {
-            lifecycle.removeObserver(observer)
-            if (resumed) mapView.onPause()
-            if (started) mapView.onStop()
-            mapView.onDestroy()
+        lifecycle.addObserver(observer) // replays events up to the current state
+        // A new owner that is behind the map (e.g. stopped) replays nothing, so bring the map down to it.
+        when {
+            !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) -> mapLifecycle.stop()
+            !lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) -> mapLifecycle.pause()
         }
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+
+    // MapView.onLowMemory is part of MapLibre's documented lifecycle: it drops tile and glyph
+    // caches. Send it when the system is low on memory or the app's UI is hidden.
+    DisposableEffect(context, mapLifecycle) {
+        val callbacks = object : ComponentCallbacks2 {
+            override fun onTrimMemory(level: Int) {
+                if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN && !mapLifecycle.destroyed) mapView.onLowMemory()
+            }
+
+            override fun onConfigurationChanged(newConfig: Configuration) = Unit
+
+            @Deprecated("Deprecated in Java")
+            override fun onLowMemory() {
+                if (!mapLifecycle.destroyed) mapView.onLowMemory()
+            }
+        }
+        context.registerComponentCallbacks(callbacks)
+        onDispose { context.unregisterComponentCallbacks(callbacks) }
     }
 
     DisposableEffect(mapView) {
@@ -236,7 +261,12 @@ fun SmartMap(
         }
     }
 
-    AndroidView(factory = { mapView }, modifier = modifier)
+    AndroidView(
+        factory = { mapView },
+        modifier = modifier,
+        // Runs exactly once, when the view leaves the UI for good: the same contract as MapView.onDestroy.
+        onRelease = { mapLifecycle.destroy() },
+    )
 }
 
 private fun addLayers(s: Style) {
