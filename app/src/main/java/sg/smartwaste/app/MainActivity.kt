@@ -18,9 +18,10 @@ class MainActivity : ComponentActivity() {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         splash.setKeepOnScreenCondition { !ready }
+        // Light UI: dark status/navigation bar icons on a transparent bar.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
         )
         setContent {
             SmartWasteTheme {

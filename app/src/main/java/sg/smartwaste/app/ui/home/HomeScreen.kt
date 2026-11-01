@@ -1,7 +1,7 @@
 package sg.smartwaste.app.ui.home
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,18 +19,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Eco
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lightbulb
-import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.NearMe
-import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Store
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,50 +49,62 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import sg.smartwaste.app.data.KnowledgeBase
 import sg.smartwaste.app.data.db.DepositEntity
 import sg.smartwaste.app.data.model.EWasteCategory
+import sg.smartwaste.app.data.model.PlaceType
 import sg.smartwaste.app.data.model.PlaceWithDistance
-import sg.smartwaste.app.ui.components.ArrowCircle
 import sg.smartwaste.app.ui.components.Avatar
 import sg.smartwaste.app.ui.components.CircleIconButton
-import sg.smartwaste.app.ui.components.FillLevelBar
-import sg.smartwaste.app.ui.components.HeroHeader
-import sg.smartwaste.app.ui.components.IconBadge
+import sg.smartwaste.app.ui.components.CoverArt
+import sg.smartwaste.app.ui.components.DayCard
+import sg.smartwaste.app.ui.components.FrostTag
+import sg.smartwaste.app.ui.components.FrostedCircleButton
 import sg.smartwaste.app.ui.components.LOCATION_PERMISSIONS
+import sg.smartwaste.app.ui.components.ListingCard
+import sg.smartwaste.app.ui.components.PillChip
 import sg.smartwaste.app.ui.components.ProgressBar
+import sg.smartwaste.app.ui.components.RatingChip
 import sg.smartwaste.app.ui.components.SearchPill
 import sg.smartwaste.app.ui.components.SectionHeader
+import sg.smartwaste.app.ui.components.SeeMorePill
 import sg.smartwaste.app.ui.components.StatsStrip
-import sg.smartwaste.app.ui.components.Tag
-import sg.smartwaste.app.ui.components.TintTag
+import sg.smartwaste.app.ui.components.Tones
 import sg.smartwaste.app.ui.components.TrendChart
 import sg.smartwaste.app.ui.components.appViewModel
 import sg.smartwaste.app.ui.components.icon
+import sg.smartwaste.app.ui.components.placeIcon
+import sg.smartwaste.app.ui.components.placeTones
 import sg.smartwaste.app.ui.components.rememberPermissionState
 import sg.smartwaste.app.ui.components.tint
+import sg.smartwaste.app.ui.components.tones
 import sg.smartwaste.app.ui.map.openUrl
 import sg.smartwaste.app.ui.theme.SW
 import sg.smartwaste.app.util.Geo
+import java.io.File
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.absoluteValue
 
 /** Monthly item goal per category used for the category progress cards. */
 private const val MONTHLY_GOAL = 5
@@ -98,7 +115,7 @@ fun HomeScreen(
     onOpenMap: (mode: String?, category: String?, placeId: String?) -> Unit,
     onRewards: () -> Unit,
     onProfile: () -> Unit,
-    onDeposit: () -> Unit,
+    onDeposit: (placeId: String?) -> Unit,
 ) {
     val vm = appViewModel { HomeViewModel(it) }
     val s by vm.state.collectAsStateWithLifecycle()
@@ -107,125 +124,137 @@ fun HomeScreen(
     val permission = rememberPermissionState(*LOCATION_PERMISSIONS) { vm.refreshLocation() }
     var showUpdates by remember { mutableStateOf(false) }
     val fmt = NumberFormat.getIntegerInstance(Locale.US)
-    val month = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
+    val month = SimpleDateFormat("MMMM", Locale.US).format(Date())
 
     LaunchedEffect(Unit) {
         if (permission.granted) vm.refreshLocation() else permission.request()
     }
 
     LazyColumn(
-        Modifier.fillMaxSize().background(SW.Sheet),
+        Modifier.fillMaxSize().background(SW.Bg),
         contentPadding = PaddingValues(bottom = 130.dp),
     ) {
-        // ------------------------------------------------------------- hero
+        // ------------------------------------------------ greeting + search
         item {
-            HeroHeader {
-                Row(
-                    Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Avatar(s.name, onClick = onProfile)
-                    Spacer(Modifier.weight(1f))
-                    Row(
-                        Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.08f))
-                            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(50))
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(month, color = SW.Text, style = MaterialTheme.typography.labelMedium)
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Rounded.KeyboardArrowDown, null, tint = SW.Subtle, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(Modifier.weight(1f))
-                    CircleIconButton(Icons.Rounded.Notifications, "Updates", { showUpdates = true }, container = Color.White.copy(alpha = 0.08f))
+            Row(
+                Modifier.fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Hello, ${s.name.substringBefore(' ').ifBlank { "there" }}",
+                        style = MaterialTheme.typography.headlineSmall, color = SW.Text,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text("Welcome to SmartWaste", style = MaterialTheme.typography.bodySmall, color = SW.Muted)
                 }
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    "Hi ${s.name.substringBefore(' ').ifBlank { "there" }} · Points balance",
-                    color = SW.Subtle, style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
-                )
-                Text(
-                    buildAnnotatedString {
-                        withStyle(SpanStyle(color = SW.Text)) { append(fmt.format(s.balance)) }
-                        withStyle(SpanStyle(color = SW.Text.copy(alpha = 0.45f), fontSize = 28.sp)) { append(" pts") }
-                    },
-                    fontSize = 46.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
-                )
-                Text(
-                    buildString {
-                        append(s.tier.name)
-                        s.nextTier?.let { append(" · ${fmt.format(it.minLifetimePoints - s.lifetime)} pts to ${it.name}") }
-                        append(" · ${s.redeemableCount} rewards ready")
-                    },
-                    color = SW.Muted, style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(18.dp))
-                val diff = s.monthItems - s.lastMonthItems
-                StatsStrip(
-                    listOf(
-                        Triple("Items this month", "${s.monthItems}", if (diff >= 0) "+$diff vs last month" else "$diff vs last month"),
-                        Triple("Deposits", "${s.monthDeposits}", "${s.impact.verifiedDeposits} verified total"),
-                        Triple("CO₂e avoided", String.format(Locale.US, "%.1f kg", s.monthCo2), "this month"),
-                    ),
-                    Modifier.padding(horizontal = 20.dp),
-                )
+                Spacer(Modifier.width(12.dp))
+                Avatar(s.name, size = 50.dp, onClick = onProfile)
             }
-        }
-
-        // ------------------------------------------------------------- sheet
-        item {
+            Spacer(Modifier.height(18.dp))
             SearchPill(
-                "Search bins, buyers, items…",
+                "Search bins, buyers, malls",
                 onClick = { onOpenMap(null, null, null) },
                 onFilter = { onOpenMap("bins", selectedCategory?.name, null) },
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(26.dp))
         }
-        item { TrendCard(s.trend, month.substringBefore(' ')) }
+
+        // --------------------------------------------- category chips + deck
         item {
-            Spacer(Modifier.height(16.dp))
-            ScanHero(selectedCategory, onScan, onDeposit)
+            Text(
+                "What are you recycling?", style = MaterialTheme.typography.titleLarge, color = SW.Text,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+            Spacer(Modifier.height(12.dp))
+            LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { PillChip("All", selected = selectedCategory == null, onClick = { vm.selectCategory(null) }) }
+                items(EWasteCategory.entries) { c ->
+                    PillChip(c.shortTitle, selected = selectedCategory == c, onClick = { vm.selectCategory(c) })
+                }
+            }
+            Spacer(Modifier.height(18.dp))
         }
+        item {
+            BinDeck(
+                bins = s.nearbyBins,
+                locationKnown = s.locationKnown,
+                category = selectedCategory,
+                onOpen = { id -> onOpenMap("bins", null, id) },
+                onVerify = { id -> onDeposit(id) },
+                onOpenMap = { mode -> onOpenMap(mode, selectedCategory?.name, null) },
+            )
+        }
+
+        // ---------------------------------------------------------- points
         item {
             Spacer(Modifier.height(24.dp))
-            SectionHeader("Categories", action = "View All", onAction = { onOpenMap("bins", selectedCategory?.name, null) })
-            Spacer(Modifier.height(12.dp))
+            PointsCard(s, fmt, onRewards = onRewards, onUpdates = { showUpdates = true })
+        }
+        item {
+            Spacer(Modifier.height(16.dp))
+            ScanCard(selectedCategory, onScan, onDeposit = { onDeposit(null) })
+        }
+
+        // ------------------------------------------- per-category progress
+        item {
+            Spacer(Modifier.height(28.dp))
+            SectionHeader("Recycled by category", action = "See bins", onAction = { onOpenMap("bins", selectedCategory?.name, null) })
+            Spacer(Modifier.height(14.dp))
             LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(EWasteCategory.entries) { c ->
                     CategoryCard(c, s.impact.byCategory[c] ?: 0, selected = selectedCategory == c) { vm.selectCategory(c) }
                 }
             }
         }
+
+        // ------------------------------------------------------------ sell
         item {
-            Spacer(Modifier.height(24.dp))
-            SectionHeader(
-                if (s.locationKnown) "Nearest e-waste bins" else "E-waste bins in Singapore",
-                action = "View All", onAction = { onOpenMap("bins", selectedCategory?.name, null) },
-            )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(28.dp))
+            SectionHeader("Sell your e-waste", action = "See all", onAction = { onOpenMap("buyers", selectedCategory?.name, null) })
+            Spacer(Modifier.height(14.dp))
             LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(s.nearbyBins, key = { it.place.id }) { item -> BinCard(item) { onOpenMap("bins", null, item.place.id) } }
-            }
-        }
-        item {
-            Spacer(Modifier.height(24.dp))
-            SectionHeader("Sell your e-waste", action = "View All", onAction = { onOpenMap("buyers", selectedCategory?.name, null) })
-            Spacer(Modifier.height(12.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(s.nearbyBuyers, key = { it.place.id }) { item -> BuyerCard(item) { onOpenMap("buyers", null, item.place.id) } }
+                items(s.nearbyBuyers, key = { it.place.id }) { item ->
+                    val p = item.place
+                    val phone = p.phone
+                    ListingCard(
+                        title = p.name,
+                        meta = "${Geo.formatDistance(item.distanceMeters)} • ${p.buyer?.buys ?: "Used electronics"}",
+                        chip = p.buyer?.pays ?: "Get a quote",
+                        chipNote = if (p.buyer?.pickup == true) "Pickup" else null,
+                        chipIcon = Icons.Outlined.Payments,
+                        onClick = { onOpenMap("buyers", null, p.id) },
+                        coverAction = {
+                            if (phone != null) FrostedCircleButton(Icons.Outlined.Call, "Call ${p.name}", { openUrl(context, "tel:$phone") })
+                        },
+                        cover = {
+                            CoverArt(placeTones(p), Modifier.matchParentSize(), seed = p.id.hashCode(), icon = Icons.Rounded.Store, iconSize = 44.dp)
+                        },
+                    )
+                }
                 items(s.onlineBuyers, key = { "online-" + it.name }) { b ->
-                    OnlineBuyerCard(b.name, b.buys, b.pays) { openUrl(context, b.website) }
+                    ListingCard(
+                        title = b.name,
+                        meta = "Online • ${b.buys}",
+                        chip = b.pays,
+                        chipNote = null,
+                        chipIcon = Icons.Outlined.Payments,
+                        onClick = { openUrl(context, b.website) },
+                        coverAction = { FrostTag("Online", icon = Icons.Rounded.Language) },
+                        cover = {
+                            CoverArt(Tones.forKey(b.name), Modifier.matchParentSize(), seed = b.name.hashCode(), icon = Icons.Rounded.Language, iconSize = 44.dp)
+                        },
+                    )
                 }
             }
         }
+
+        // ---------------------------------------------------------- latest
         item {
-            Spacer(Modifier.height(24.dp))
-            SectionHeader("Latest", action = if (s.latest.isNotEmpty()) "View All" else null, onAction = onProfile)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(28.dp))
+            SectionHeader("Recent deposits", action = if (s.latest.isNotEmpty()) "See all" else null, onAction = onProfile)
+            Spacer(Modifier.height(12.dp))
             if (s.latest.isEmpty()) {
                 Text(
                     "No deposits yet. Scan an item and drop it in a bin to earn your first points.",
@@ -234,6 +263,11 @@ fun HomeScreen(
             }
         }
         items(s.latest, key = { "latest-${it.id}" }) { d -> LatestRow(d) }
+
+        item {
+            Spacer(Modifier.height(20.dp))
+            TrendCard(s.trend, month)
+        }
         item {
             Spacer(Modifier.height(16.dp))
             SafetyTipCard()
@@ -243,8 +277,8 @@ fun HomeScreen(
     if (showUpdates) {
         AlertDialog(
             onDismissRequest = { showUpdates = false },
-            containerColor = SW.Card,
-            shape = RoundedCornerShape(26.dp),
+            containerColor = SW.Surface,
+            shape = RoundedCornerShape(28.dp),
             title = { Text("Updates", color = SW.Text) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -253,10 +287,264 @@ fun HomeScreen(
                     Text("• Tip: ${KnowledgeBase.safetyTips.first()}", color = SW.Subtle)
                 }
             },
-            confirmButton = { TextButton(onClick = { showUpdates = false; onRewards() }) { Text("Open rewards", color = SW.Lime) } },
+            confirmButton = {
+                TextButton(onClick = { showUpdates = false; onRewards() }) { Text("Open rewards", color = SW.Ink, fontWeight = FontWeight.SemiBold) }
+            },
             dismissButton = { TextButton(onClick = { showUpdates = false }) { Text("Close", color = SW.Muted) } },
         )
     }
+}
+
+/** Stacked carousel of the nearest bins: the centre card sits in front of its neighbours. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BinDeck(
+    bins: List<PlaceWithDistance>,
+    locationKnown: Boolean,
+    category: EWasteCategory?,
+    onOpen: (String) -> Unit,
+    onVerify: (String) -> Unit,
+    onOpenMap: (mode: String) -> Unit,
+) {
+    if (bins.isEmpty()) {
+        EmptyDeckCard(category, onOpenMap)
+        return
+    }
+    val pager = rememberPagerState(pageCount = { bins.size })
+    HorizontalPager(
+        state = pager,
+        contentPadding = PaddingValues(horizontal = 40.dp),
+        modifier = Modifier.fillMaxWidth().height(390.dp),
+    ) { page ->
+        val item = bins[page]
+        BinHeroCard(
+            item = item,
+            locationKnown = locationKnown,
+            onOpen = { onOpen(item.place.id) },
+            onVerify = { onVerify(item.place.id) },
+            modifier = Modifier
+                .zIndex(if (page == pager.currentPage) 1f else 0f)
+                .graphicsLayer {
+                    val offset = (pager.currentPage - page) + pager.currentPageOffsetFraction
+                    val dist = offset.absoluteValue.coerceIn(0f, 1f)
+                    val scale = 1f - 0.14f * dist
+                    scaleX = scale
+                    scaleY = scale
+                    // Tuck the side cards behind the centre one.
+                    translationX = offset.coerceIn(-1f, 1f) * size.width * 0.16f
+                },
+        )
+    }
+}
+
+@Composable
+private fun BinHeroCard(
+    item: PlaceWithDistance,
+    locationKnown: Boolean,
+    onOpen: () -> Unit,
+    onVerify: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val p = item.place
+    // Without a location fix, distances are measured from the city centre.
+    val distance = Geo.formatDistance(item.distanceMeters) + if (locationKnown) "" else " from city centre"
+    val types = p.accepts.size
+    val typesLabel = "Accepts $types item type${if (types == 1) "" else "s"}"
+    Box(modifier.fillMaxSize().clip(RoundedCornerShape(32.dp)).clickable(onClick = onOpen)) {
+        CoverArt(
+            placeTones(p), Modifier.matchParentSize(), seed = p.id.hashCode(), icon = placeIcon(p),
+            iconSize = 84.dp, iconAlignment = BiasAlignment(0f, -0.45f), scrim = true,
+        )
+        if (p.type == PlaceType.BIN) {
+            FrostedCircleButton(
+                Icons.Outlined.TaskAlt, "I'm at this bin: verify and earn points", onVerify,
+                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+            )
+        }
+        Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(12.dp)) {
+            Column(Modifier.padding(horizontal = 8.dp)) {
+                Text(
+                    "${if (p.isSmartBin) "Smart bin" else "E-waste bin"} · $distance",
+                    color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                )
+                Text(
+                    p.name, color = Color.White, style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val fill = p.fillLevel
+                    RatingChip(if (fill != null) "$fill% full" else "$types types", icon = Icons.Outlined.Delete, onImage = true)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (fill != null) typesLabel else p.operator,
+                        color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            SeeMorePill("View on map", onOpen)
+        }
+    }
+}
+
+/** Shown when no bin matches: items that don't fit in bins get a take-back prompt instead. */
+@Composable
+private fun EmptyDeckCard(category: EWasteCategory?, onOpenMap: (mode: String) -> Unit) {
+    val takeBack = category != null && !category.binFriendly
+    val mode = if (takeBack) "buyers" else "bins"
+    Box(
+        Modifier.padding(horizontal = 40.dp).fillMaxWidth().height(390.dp).clip(RoundedCornerShape(32.dp))
+            .clickable { onOpenMap(mode) },
+    ) {
+        CoverArt(
+            category?.tones ?: Tones.Alpine, Modifier.matchParentSize(), seed = 3, icon = category?.icon ?: Icons.Rounded.Map,
+            iconSize = 84.dp, iconAlignment = BiasAlignment(0f, -0.45f), scrim = true,
+        )
+        Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(12.dp)) {
+            Column(Modifier.padding(horizontal = 8.dp)) {
+                Text("Singapore", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (takeBack) "Too big for a bin" else "No bins to show yet",
+                    color = Color.White, style = MaterialTheme.typography.headlineSmall,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (takeBack) "Use retailer take-back, a licensed collector, or sell it if it still works."
+                    else "Open the map to browse every e-waste bin and buyer.",
+                    color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            SeeMorePill(if (takeBack) "Find take-back" else "Open map", { onOpenMap(mode) })
+        }
+    }
+}
+
+@Composable
+private fun PointsCard(s: HomeState, fmt: NumberFormat, onRewards: () -> Unit, onUpdates: () -> Unit) {
+    Column(
+        Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(SW.Surface)
+            .clickable(onClick = onRewards).padding(18.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text("Points balance", style = MaterialTheme.typography.bodySmall, color = SW.Muted)
+                Text(
+                    buildAnnotatedString {
+                        append(fmt.format(s.balance))
+                        withStyle(SpanStyle(color = SW.Muted, fontSize = 18.sp, fontWeight = FontWeight.Medium)) { append(" pts") }
+                    },
+                    color = SW.Text, fontSize = 34.sp, fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RatingChip(s.tier.name, icon = Icons.Outlined.EmojiEvents)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        s.nextTier?.let { "${fmt.format(it.minLifetimePoints - s.lifetime)} pts to ${it.name}" } ?: "Top tier reached",
+                        style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            CircleIconButton(Icons.Outlined.Notifications, "Updates", onUpdates, container = SW.SurfaceAlt)
+        }
+        Spacer(Modifier.height(16.dp))
+        val diff = s.monthItems - s.lastMonthItems
+        StatsStrip(
+            listOf(
+                Triple("Items this month", "${s.monthItems}", if (diff >= 0) "+$diff vs last month" else "$diff vs last month"),
+                Triple("Deposits", "${s.monthDeposits}", "${s.impact.verifiedDeposits} verified total"),
+                Triple("CO₂e avoided", String.format(Locale.US, "%.1f kg", s.monthCo2), "this month"),
+            ),
+        )
+    }
+}
+
+/** Wide cover card that opens the AI scanner, with a shortcut to verify a deposit at any bin. */
+@Composable
+private fun ScanCard(category: EWasteCategory?, onScan: () -> Unit, onDeposit: () -> Unit) {
+    Box(
+        Modifier.padding(horizontal = 20.dp).fillMaxWidth().height(220.dp).clip(RoundedCornerShape(30.dp)).clickable(onClick = onScan),
+    ) {
+        CoverArt(
+            category?.tones ?: Tones.Lagoon, Modifier.matchParentSize(), seed = 11, icon = category?.icon ?: Icons.Rounded.Eco,
+            iconSize = 60.dp, iconAlignment = BiasAlignment(0.2f, -0.55f), scrim = true,
+        )
+        FrostTag("AI powered", Modifier.align(Alignment.TopStart).padding(16.dp), icon = Icons.Rounded.AutoAwesome)
+        FrostedCircleButton(
+            Icons.Outlined.TaskAlt, "Earn at a bin: verify a deposit", onDeposit,
+            modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+        )
+        Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(12.dp)) {
+            Column(Modifier.padding(horizontal = 8.dp)) {
+                Text(
+                    if (category != null) "Scan your ${category.shortTitle.lowercase()}" else "Identify e-waste with one photo",
+                    color = Color.White, style = MaterialTheme.typography.titleLarge,
+                )
+                Text(
+                    "Right bin, safety steps and resale value",
+                    color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            SeeMorePill("Start scanning", onScan)
+        }
+    }
+}
+
+/** Items recycled in a category against the monthly goal. Selected cards turn charcoal. */
+@Composable
+private fun CategoryCard(c: EWasteCategory, count: Int, selected: Boolean, onClick: () -> Unit) {
+    val pct = (count * 100 / MONTHLY_GOAL).coerceAtMost(999)
+    val fg = if (selected) SW.OnInk else SW.Text
+    val sub = if (selected) SW.OnInk.copy(alpha = 0.7f) else SW.Muted
+    Column(
+        Modifier.width(168.dp).clip(RoundedCornerShape(26.dp)).background(if (selected) SW.Ink else SW.Surface)
+            .clickable(onClick = onClick).padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(28.dp).clip(CircleShape).background(c.tint), contentAlignment = Alignment.Center) {
+                Icon(c.icon, null, tint = Color.White, modifier = Modifier.size(15.dp))
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(c.shortTitle, color = fg, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.height(12.dp))
+        Text("$count", color = fg, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
+        Text("items recycled", color = sub, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(10.dp))
+        ProgressBar(
+            count / MONTHLY_GOAL.toFloat(), if (selected) SW.OnInk else SW.Ink,
+            track = if (selected) SW.OnInk.copy(alpha = 0.2f) else SW.Track,
+        )
+        Spacer(Modifier.height(6.dp))
+        Row {
+            Text("$pct%", color = fg, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+            Text("goal $MONTHLY_GOAL", color = sub, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun LatestRow(d: DepositEntity) {
+    val cat = EWasteCategory.fromKey(d.category)
+    DayCard(
+        overline = "${SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(d.timestamp))} · ${d.placeName}",
+        title = d.itemName,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
+        trailing = { Text("+${d.points}", color = SW.Text, style = MaterialTheme.typography.titleMedium) },
+        thumbnail = {
+            CoverArt(
+                cat?.tones ?: Tones.Forest, Modifier.matchParentSize(), seed = d.id.hashCode(),
+                icon = cat?.icon ?: Icons.Rounded.Eco, iconSize = 24.dp,
+            )
+            d.photoPath?.let { path ->
+                AsyncImage(File(path), null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
+            }
+        },
+    )
 }
 
 @Composable
@@ -264,18 +552,19 @@ private fun TrendCard(values: List<Float>, monthName: String) {
     val total = values.sum().toInt()
     val max = (values.maxOrNull() ?: 0f).toInt()
     Column(
-        Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(24.dp)).padding(16.dp),
+        Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(SW.Surface).padding(18.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Recycling trend · $monthName", color = SW.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text("0 — $max pts daily", color = SW.Lime, style = MaterialTheme.typography.labelSmall)
+            Column(Modifier.weight(1f)) {
+                Text("Recycling trend", color = SW.Text, style = MaterialTheme.typography.titleMedium)
+                Text("$total pts earned in $monthName", color = SW.Muted, style = MaterialTheme.typography.bodySmall)
+            }
+            RatingChip("Max $max / day", icon = Icons.Rounded.Eco)
         }
-        Spacer(Modifier.height(4.dp))
-        Text("$total pts earned this month", color = SW.Muted, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.height(12.dp))
-        val data = if (values.size >= 2 && values.any { it > 0f }) values else List(maxOf(values.size, 7)) { 0.2f + (it % 3) * 0.05f }
-        TrendChart(data, Modifier.fillMaxWidth().height(90.dp), color = if (values.any { it > 0f }) SW.Lime else SW.Line)
+        Spacer(Modifier.height(14.dp))
+        val hasData = values.size >= 2 && values.any { it > 0f }
+        val data = if (hasData) values else List(maxOf(values.size, 7)) { 0.2f + (it % 3) * 0.05f }
+        TrendChart(data, Modifier.fillMaxWidth().height(90.dp), color = if (hasData) SW.Ink else SW.Line)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             val days = values.size.coerceAtLeast(1)
@@ -287,175 +576,6 @@ private fun TrendCard(values: List<Float>, monthName: String) {
     }
 }
 
-/** Gradient call-to-action card for the AI scanner. */
-@Composable
-private fun ScanHero(category: EWasteCategory?, onScan: () -> Unit, onDeposit: () -> Unit) {
-    Box(
-        Modifier
-            .padding(horizontal = 20.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(Brush.linearGradient(listOf(SW.Olive, SW.OliveDark)))
-            .border(1.dp, SW.Lime.copy(alpha = 0.25f), RoundedCornerShape(28.dp))
-            .clickable(onClick = onScan)
-            .padding(20.dp),
-    ) {
-        Icon(
-            category?.icon ?: Icons.Rounded.Eco, null, tint = SW.Lime.copy(alpha = 0.12f),
-            modifier = Modifier.align(Alignment.TopEnd).size(120.dp),
-        )
-        Column {
-            TintTag("AI powered", SW.Lime)
-            Spacer(Modifier.height(10.dp))
-            Text(
-                if (category != null) "Scan your ${category.shortTitle.lowercase()}" else "Identify e-waste\nwith one photo",
-                color = SW.Text, style = MaterialTheme.typography.headlineSmall,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text("Right bin, safety steps & resale value instantly", color = SW.Subtle, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(16.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(26.dp)).background(Color.White.copy(alpha = 0.08f))
-                        .clickable(onClick = onScan).padding(start = 18.dp, end = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Start scanning", color = SW.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                    ArrowCircle(size = 42.dp)
-                }
-                Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Rounded.VerifiedUser, "Earn at a bin", onDeposit, container = SW.Card2, content = SW.Lime, size = 52.dp)
-            }
-        }
-    }
-}
-
-/** "Food €682 · 88% of €780" style card, here: items recycled vs monthly goal. */
-@Composable
-private fun CategoryCard(c: EWasteCategory, count: Int, selected: Boolean, onClick: () -> Unit) {
-    val pct = (count * 100 / MONTHLY_GOAL).coerceAtMost(999)
-    Column(
-        Modifier.width(168.dp).clip(RoundedCornerShape(22.dp))
-            .background(if (selected) c.tint.copy(alpha = 0.12f) else SW.Card)
-            .border(1.dp, if (selected) c.tint else SW.Line, RoundedCornerShape(22.dp))
-            .clickable(onClick = onClick).padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(c.icon, null, tint = c.tint, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(c.shortTitle, color = SW.Subtle, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-        }
-        Spacer(Modifier.height(10.dp))
-        Text("$count", color = SW.Text, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-        Text("items recycled", color = SW.Muted, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.height(10.dp))
-        ProgressBar(count / MONTHLY_GOAL.toFloat(), c.tint)
-        Spacer(Modifier.height(6.dp))
-        Row {
-            Text("$pct%", color = c.tint, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text("goal $MONTHLY_GOAL", color = SW.Muted, style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
-
-@Composable
-private fun BinCard(item: PlaceWithDistance, onClick: () -> Unit) {
-    val p = item.place
-    val accent = if (p.isSmartBin) SW.Mint else SW.Lime
-    Column(
-        Modifier.width(230.dp).clip(RoundedCornerShape(24.dp)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick),
-    ) {
-        Box(
-            Modifier.fillMaxWidth().height(104.dp).padding(8.dp).clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.32f), SW.OliveDark))),
-        ) {
-            Icon(
-                (p.accepts.firstOrNull() ?: EWasteCategory.DEVICE_WITH_BATTERY).icon, null,
-                tint = accent.copy(alpha = 0.45f), modifier = Modifier.align(Alignment.CenterEnd).padding(end = 12.dp).size(64.dp),
-            )
-            Tag(
-                Geo.formatDistance(item.distanceMeters), SW.Bg.copy(alpha = 0.7f), SW.Text, icon = Icons.Rounded.NearMe,
-                modifier = Modifier.align(Alignment.TopStart).padding(10.dp),
-            )
-            if (p.isSmartBin) Tag("Smart bin", accent, SW.OnLime, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
-        }
-        Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = 4.dp)) {
-            Text(p.name, style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.LocationOn, null, tint = SW.Muted, modifier = Modifier.size(12.dp))
-                Text(p.address, style = MaterialTheme.typography.labelSmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                FillLevelBar(p.fillLevel, Modifier.weight(1f))
-                Spacer(Modifier.width(10.dp))
-                ArrowCircle(size = 34.dp)
-            }
-        }
-    }
-}
-
-@Composable
-private fun BuyerCard(item: PlaceWithDistance, onClick: () -> Unit) {
-    val p = item.place
-    Column(
-        Modifier.width(210.dp).clip(RoundedCornerShape(24.dp)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick).padding(14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(Icons.Rounded.Store, SW.Amber, size = 40.dp)
-            Spacer(Modifier.weight(1f))
-            Tag(Geo.formatDistance(item.distanceMeters), SW.Card2, SW.Text)
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(p.name, style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(p.buyer?.buys.orEmpty(), style = MaterialTheme.typography.labelSmall, color = SW.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(8.dp))
-        Text(p.buyer?.pays ?: "Get a quote", style = MaterialTheme.typography.labelMedium, color = SW.Amber, maxLines = 1)
-    }
-}
-
-@Composable
-private fun OnlineBuyerCard(name: String, buys: String, pays: String, onClick: () -> Unit) {
-    Column(
-        Modifier.width(210.dp).clip(RoundedCornerShape(24.dp)).background(SW.OliveDark).border(1.dp, SW.Lime.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick).padding(14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(Icons.Rounded.Language, SW.Lime, size = 40.dp)
-            Spacer(Modifier.weight(1f))
-            Tag("Online", SW.Lime, SW.OnLime)
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(name, style = MaterialTheme.typography.titleSmall, color = SW.Text, maxLines = 1)
-        Text(buys, style = MaterialTheme.typography.labelSmall, color = SW.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(8.dp))
-        Text(pays, style = MaterialTheme.typography.labelMedium, color = SW.Lime, maxLines = 1)
-    }
-}
-
-@Composable
-private fun LatestRow(d: DepositEntity) {
-    val cat = EWasteCategory.fromKey(d.category)
-    Row(
-        Modifier.padding(horizontal = 20.dp, vertical = 5.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(SW.Card)
-            .border(1.dp, SW.Line, RoundedCornerShape(20.dp)).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconBadge(cat?.icon ?: Icons.Rounded.Eco, cat?.tint ?: SW.Lime, size = 42.dp)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(d.itemName, color = SW.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                "${d.placeName} · ${SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(d.timestamp))}",
-                color = SW.Muted, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Text("+${d.points}", color = SW.Lime, style = MaterialTheme.typography.titleMedium)
-    }
-}
-
 @Composable
 private fun SafetyTipCard() {
     var index by remember { mutableIntStateOf(0) }
@@ -463,15 +583,15 @@ private fun SafetyTipCard() {
         while (true) { delay(6_000); index = (index + 1) % KnowledgeBase.safetyTips.size }
     }
     Row(
-        Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(SW.LimeSoft).padding(16.dp),
+        Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(SW.Surface).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(SW.Lime), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Lightbulb, null, tint = SW.OnLime, modifier = Modifier.size(20.dp))
+        Box(Modifier.size(44.dp).clip(CircleShape).background(SW.Ink), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Lightbulb, null, tint = SW.OnInk, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(12.dp))
         Column {
-            Text("Safety tip", style = MaterialTheme.typography.labelMedium, color = SW.Lime)
+            Text("Safety tip", style = MaterialTheme.typography.bodySmall, color = SW.Muted)
             Text(KnowledgeBase.safetyTips[index], style = MaterialTheme.typography.bodyMedium, color = SW.Text)
         }
     }

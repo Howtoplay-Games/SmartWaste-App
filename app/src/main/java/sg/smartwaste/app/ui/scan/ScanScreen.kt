@@ -32,12 +32,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.FlashOff
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.FlashOff
-import androidx.compose.material.icons.rounded.FlashOn
-import androidx.compose.material.icons.rounded.PhotoLibrary
-import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -107,48 +107,47 @@ fun ScanScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(SW.heroBrush)
+            .background(SW.Bg)
             .statusBarsPadding(),
     ) {
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
             Text(
                 if (mode == ScanMode.ITEM) "Scan e-waste" else "Scan bin QR code",
-                color = SW.Text, style = MaterialTheme.typography.headlineMedium,
+                color = SW.Text, style = MaterialTheme.typography.headlineSmall,
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 if (mode == ScanMode.ITEM) "Point your camera at the item. AI will identify it and guide you."
                 else "Point at the \"SCAN ME TO GET POINTS!\" QR on a SmartWaste bin.",
-                color = SW.Text.copy(alpha = 0.65f), style = MaterialTheme.typography.bodyMedium,
+                color = SW.Muted, style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 40.dp),
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScanMode.entries.forEach { m ->
                     PillChip(m.label, selected = mode == m, onClick = { mode = m },
-                        leading = if (m == ScanMode.ITEM) Icons.Rounded.CameraAlt else Icons.Rounded.QrCodeScanner)
+                        leading = if (m == ScanMode.ITEM) Icons.Outlined.CameraAlt else Icons.Outlined.QrCodeScanner)
                 }
             }
             Spacer(Modifier.height(20.dp))
 
             Box(
                 Modifier
-                    .padding(horizontal = 28.dp)
+                    .padding(horizontal = 24.dp)
                     .fillMaxWidth()
-                    .aspectRatio(0.82f)
+                    .aspectRatio(0.8f)
                     .clip(RoundedCornerShape(34.dp))
-                    .background(SW.Card)
-                    .border(1.dp, SW.Line, RoundedCornerShape(34.dp)),
+                    .background(SW.Ink),
                 contentAlignment = Alignment.Center,
             ) {
                 if (!camera.granted) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-                        Icon(Icons.Rounded.CameraAlt, null, tint = SW.Text.copy(alpha = 0.7f), modifier = Modifier.size(42.dp))
+                        Icon(Icons.Outlined.CameraAlt, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(42.dp))
                         Spacer(Modifier.height(10.dp))
-                        Text("Camera access is needed to scan", color = SW.Text, textAlign = TextAlign.Center)
+                        Text("Camera access is needed to scan", color = Color.White, textAlign = TextAlign.Center)
                         Spacer(Modifier.height(14.dp))
-                        PrimaryButton("Allow camera", { camera.request() }, height = 48.dp)
+                        PrimaryButton("Allow camera", { camera.request() }, height = 48.dp, container = SW.Surface, contentColor = SW.Ink)
                     }
                 } else if (s.analyzing && s.photoPath != null) {
                     AsyncImage(
@@ -166,16 +165,16 @@ fun ScanScreen(
                 } else {
                     QrCamera(onBinQr)
                 }
-                CornerBrackets(Modifier.fillMaxSize().padding(18.dp), color = SW.Lime)
+                CornerBrackets(Modifier.fillMaxSize().padding(18.dp), color = Color.White)
             }
 
             Spacer(Modifier.height(18.dp))
             AnimatedVisibility(s.analyzing, enter = fadeIn(), exit = fadeOut()) {
                 Row(
-                    Modifier.clip(RoundedCornerShape(50)).background(SW.Card).border(1.dp, SW.Line, RoundedCornerShape(50)).padding(horizontal = 18.dp, vertical = 12.dp),
+                    Modifier.clip(RoundedCornerShape(50)).background(SW.Surface).padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(Modifier.size(18.dp), color = SW.Lime, strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(18.dp), color = SW.Ink, strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
                     Text(s.stage, color = SW.Text, style = MaterialTheme.typography.labelMedium)
                 }
@@ -204,14 +203,14 @@ private fun ItemCamera(onCaptured: (File) -> Unit, onGallery: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(26.dp),
         ) {
-            GlassButton(Icons.Rounded.PhotoLibrary, "Gallery", onGallery)
+            GlassButton(Icons.Outlined.PhotoLibrary, "Gallery", onGallery)
             Box(
                 Modifier
                     .size(78.dp)
-                    .border(4.dp, SW.Text, CircleShape)
+                    .border(4.dp, Color.White, CircleShape)
                     .padding(7.dp)
                     .clip(CircleShape)
-                    .background(if (capturing) SW.LimeDeep else SW.Lime)
+                    .background(if (capturing) SW.Track else Color.White)
                     .clickable(enabled = !capturing) {
                         capturing = true
                         controller.capture(
@@ -222,9 +221,9 @@ private fun ItemCamera(onCaptured: (File) -> Unit, onGallery: () -> Unit) {
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.CameraAlt, "Capture", tint = SW.OnLime, modifier = Modifier.size(28.dp))
+                Icon(Icons.Outlined.CameraAlt, "Capture", tint = SW.Ink, modifier = Modifier.size(28.dp))
             }
-            GlassButton(if (torch) Icons.Rounded.FlashOn else Icons.Rounded.FlashOff, "Flash") {
+            GlassButton(if (torch) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff, "Flash") {
                 torch = !torch
                 controller.enableTorch(torch)
             }
@@ -265,15 +264,15 @@ private fun QrCamera(onBinQr: (String) -> Unit) {
         CameraPreview(controller, Modifier.fillMaxSize())
         Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             if (found != null) {
-                Icon(Icons.Rounded.CheckCircle, null, tint = SW.Lime, modifier = Modifier.size(34.dp))
+                Icon(Icons.Rounded.CheckCircle, null, tint = Color.White, modifier = Modifier.size(34.dp))
                 Spacer(Modifier.height(6.dp))
-                Text("QR code identified", color = SW.Text, style = MaterialTheme.typography.titleSmall)
+                Text("QR code identified", color = Color.White, style = MaterialTheme.typography.titleSmall)
             } else {
                 Text(
                     if (invalid) "That's not a SmartWaste bin QR" else "Looking for a SmartWaste QR…",
-                    color = SW.Text,
+                    color = Color.White,
                     style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.4f)).padding(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(SW.Smoke).padding(horizontal = 14.dp, vertical = 8.dp),
                 )
             }
         }
@@ -283,13 +282,13 @@ private fun QrCamera(onBinQr: (String) -> Unit) {
 @Composable
 private fun GlassButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f)).clickable(onClick = onClick),
+        Modifier.size(52.dp).clip(CircleShape).background(SW.Frost).border(1.dp, SW.FrostLine, CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = SW.Text, modifier = Modifier.size(22.dp)) }
+    ) { Icon(icon, label, tint = Color.White, modifier = Modifier.size(22.dp)) }
 }
 
 @Composable
-fun CornerBrackets(modifier: Modifier = Modifier, color: Color = SW.Text.copy(alpha = 0.9f)) {
+fun CornerBrackets(modifier: Modifier = Modifier, color: Color = Color.White.copy(alpha = 0.9f)) {
     Canvas(modifier) {
         val len = 34.dp.toPx()
         val stroke = 4.dp.toPx()
@@ -308,12 +307,12 @@ private fun ScanLineOverlay() {
     val transition = rememberInfiniteTransition(label = "scan")
     val y by transition.animateFloat(0.05f, 0.95f, infiniteRepeatable(tween(1600), RepeatMode.Reverse), label = "y")
     Canvas(Modifier.fillMaxSize()) {
-        drawRect(Color(0x550A0B07))
+        drawRect(Color(0x551F2023))
         val yy = size.height * y
         drawRect(
-            Brush.verticalGradient(listOf(Color.Transparent, SW.Lime.copy(alpha = 0.35f), Color.Transparent), startY = yy - 60f, endY = yy + 60f),
+            Brush.verticalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.3f), Color.Transparent), startY = yy - 60f, endY = yy + 60f),
             topLeft = Offset(0f, yy - 60f), size = androidx.compose.ui.geometry.Size(size.width, 120f),
         )
-        drawLine(SW.Lime, Offset(0f, yy), Offset(size.width, yy), strokeWidth = 3f)
+        drawLine(Color.White, Offset(0f, yy), Offset(size.width, yy), strokeWidth = 3f)
     }
 }
