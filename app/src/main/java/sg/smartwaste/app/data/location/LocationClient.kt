@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import sg.smartwaste.app.util.GeoPoint
+import sg.smartwaste.app.util.ServiceArea
 
 data class LocationFix(
     val point: GeoPoint,
@@ -31,7 +32,10 @@ data class LocationFix(
     val speedMps: Float?,
     val isMock: Boolean,
     val time: Long,
-)
+) {
+    /** False for fixes outside Singapore, which can't be used as a starting point (see [ServiceArea]). */
+    val inServiceArea: Boolean get() = ServiceArea.contains(point)
+}
 
 class LocationClient(private val context: Context) {
 

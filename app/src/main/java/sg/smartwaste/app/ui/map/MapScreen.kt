@@ -284,6 +284,7 @@ fun MapScreen(
                     "route" -> RouteCard(
                         place = s.selected?.place,
                         route = s.route,
+                        fromUser = s.routeFromUser,
                         loading = s.routeLoading,
                         mode = s.mode,
                         onMode = vm::setMode,
@@ -599,6 +600,7 @@ private fun PlaceDetailCard(
 private fun RouteCard(
     place: Place?,
     route: Route?,
+    fromUser: Boolean,
     loading: Boolean,
     mode: TravelMode,
     onMode: (TravelMode) -> Unit,
@@ -623,7 +625,10 @@ private fun RouteCard(
                         )
                     }
                 }
-                Text("to ${place?.name ?: "destination"}", style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${if (fromUser) "" else "From the city centre "}to ${place?.name ?: "destination"}",
+                    style = MaterialTheme.typography.bodySmall, color = SW.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
             }
             CircleIconButton(Icons.Rounded.Close, "Close", onClose, container = SW.SurfaceAlt, size = 36.dp, iconSize = 18.dp)
         }
@@ -653,7 +658,8 @@ private fun RouteCard(
         }
         Spacer(Modifier.height(16.dp))
         Row {
-            PrimaryButton("Start", onStart, Modifier.weight(1f), enabled = route != null && !loading, leading = Icons.Outlined.Navigation)
+            // Turn-by-turn follows the user, so it only starts on a route that begins at their location.
+            PrimaryButton("Start", onStart, Modifier.weight(1f), enabled = route != null && !loading && fromUser, leading = Icons.Outlined.Navigation)
             Spacer(Modifier.width(10.dp))
             SecondaryButton("Google Maps", onExternal, Modifier.weight(1f), leading = Icons.Outlined.Map)
         }
