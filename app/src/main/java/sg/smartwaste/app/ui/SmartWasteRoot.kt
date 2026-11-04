@@ -37,6 +37,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import sg.smartwaste.app.data.auth.SessionState
+import sg.smartwaste.app.ui.analytics.AnalyticsScreen
 import sg.smartwaste.app.ui.auth.AuthScreen
 import sg.smartwaste.app.ui.chat.ChatSheet
 import sg.smartwaste.app.ui.components.AiSupportFab
@@ -160,7 +161,8 @@ private fun MainApp() {
             composable(Routes.REWARDS) {
                 RewardsScreen(onEarn = { nav.navigate(Routes.deposit()) }, onScan = { nav.switchTab(Routes.SCAN) })
             }
-            composable(Routes.PROFILE) { ProfileScreen() }
+            composable(Routes.PROFILE) { ProfileScreen(onOpenAnalytics = { nav.navigate(Routes.ANALYTICS) }) }
+            composable(Routes.ANALYTICS) { AnalyticsScreen(onBack = { nav.popBackStack() }) }
         }
 
         AnimatedVisibility(
@@ -173,8 +175,9 @@ private fun MainApp() {
         }
 
         // The map shows its own AI button inside its control column, clear of the place cards.
+        // The analytics demo hides it so it doesn't cover the screen in presentation recordings.
         AnimatedVisibility(
-            visible = route != null && route != Routes.MAP && !chatOpen,
+            visible = route != null && route != Routes.MAP && route != Routes.ANALYTICS && !chatOpen,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()

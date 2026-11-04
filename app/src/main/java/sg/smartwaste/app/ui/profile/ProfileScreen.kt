@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.VpnKey
@@ -89,7 +90,7 @@ import java.util.Locale
 private enum class Period(val label: String, val days: Int) { MONTH("Month", 30), QUARTER("Quarter", 90), YEAR("Year", 365) }
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onOpenAnalytics: () -> Unit) {
     val c = appContainer()
     val scope = rememberCoroutineScope()
     val session by c.auth.session.collectAsStateWithLifecycle(initialValue = SessionState.Loading)
@@ -242,6 +243,10 @@ fun ProfileScreen() {
                 trailing = if (showTransparency) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
             ) { showTransparency = !showTransparency }
             if (showTransparency) TransparencyCard()
+            SettingRow(
+                Icons.Outlined.Insights, "Data analytics (demo)",
+                "Raw data → clean data → insights → action, with simulated bin data",
+            ) { onOpenAnalytics() }
             SettingRow(Icons.Outlined.Info, "About SmartWaste", "v${BuildConfig.VERSION_NAME} · Every recycled item becomes a data point for a cleaner Singapore.", trailing = null) {}
             SettingRow(Icons.AutoMirrored.Outlined.ExitToApp, "Sign out", "You can sign back in any time", danger = true) { confirmLogout = true }
         }
