@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -168,6 +169,8 @@ fun AuthScreen() {
     Box(Modifier.fillMaxSize().background(SW.Bg)) {
         Column(
             Modifier
+                .align(Alignment.TopCenter)
+                .widthIn(max = 520.dp)
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()

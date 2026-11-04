@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,6 +75,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,10 +87,13 @@ import sg.smartwaste.app.data.rewards.PointsEngine
 import sg.smartwaste.app.data.verify.VerificationLevel
 import sg.smartwaste.app.data.verify.VerificationOutcome
 import sg.smartwaste.app.ui.camera.CameraPreview
+import sg.smartwaste.app.ui.camera.CameraStatus
 import sg.smartwaste.app.ui.camera.CodeAnalyzer
+import sg.smartwaste.app.ui.camera.NoCameraMessage
 import sg.smartwaste.app.ui.camera.ScannedCode
+import sg.smartwaste.app.ui.camera.SwitchCameraButton
 import sg.smartwaste.app.ui.camera.capture
-import sg.smartwaste.app.ui.camera.rememberCameraController
+import sg.smartwaste.app.ui.camera.rememberCameraHandle
 import sg.smartwaste.app.ui.components.CAMERA_PERMISSION
 import sg.smartwaste.app.ui.components.CategoryTile
 import sg.smartwaste.app.ui.components.CircleIconButton
@@ -414,29 +420,41 @@ private fun PhotoStep(s: DepositUiState, vm: DepositViewModel, cameraGranted: Bo
             if (!cameraGranted) {
                 PrimaryButton("Allow camera", requestCamera, Modifier.fillMaxWidth())
             } else {
-                val controller = rememberCameraController(CameraController.IMAGE_CAPTURE)
+                val handle = rememberCameraHandle(CameraController.IMAGE_CAPTURE)
                 var busy by remember { mutableStateOf(false) }
-                Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(28.dp)).background(SW.Ink)) {
-                    CameraPreview(controller, Modifier.fillMaxSize())
-                    CornerBrackets(Modifier.fillMaxSize().padding(16.dp))
-                    Box(
-                        Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp).size(72.dp)
-                            .border(4.dp, Color.White, CircleShape).padding(6.dp).clip(CircleShape)
-                            .background(if (busy) SW.Track else Color.White)
-                            .clickable(enabled = !busy) {
-                                busy = true
-                                controller.capture(
-                                    context, ImageUtils.newPhotoFile(context, "deposit"),
-                                    saved = { busy = false; vm.onPhoto(it) },
-                                    failed = { busy = false },
-                                )
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Outlined.CameraAlt, "Take photo", tint = SW.Ink) }
+                CameraFrame(aspect = 0.85f, maxWidth = 460.dp) {
+                    CameraPreview(handle, Modifier.fillMaxSize())
+                    if (handle.status == CameraStatus.NO_CAMERA) {
+                        NoCameraMessage("You can skip the photo and still earn points.", Modifier.fillMaxSize())
+                    } else {
+                        CornerBrackets(Modifier.fillMaxSize().padding(16.dp))
+                        if (handle.canSwitch) {
+                            SwitchCameraButton(handle, Modifier.align(Alignment.TopEnd).padding(top = 26.dp, end = 26.dp), size = 44.dp)
+                        }
+                        val ready = handle.status == CameraStatus.READY
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp).size(72.dp)
+                                .border(4.dp, Color.White, CircleShape).padding(6.dp).clip(CircleShape)
+                                .background(if (busy || !ready) SW.Track else Color.White)
+                                .clickable(enabled = !busy && ready) {
+                                    busy = true
+                                    handle.controller.capture(
+                                        context, ImageUtils.newPhotoFile(context, "deposit"),
+                                        saved = { busy = false; vm.onPhoto(it) },
+                                        failed = { busy = false },
+                                    )
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(Icons.Outlined.CameraAlt, "Take photo", tint = SW.Ink) }
+                    }
+                }
+                if (handle.status == CameraStatus.NO_CAMERA) {
+                    Spacer(Modifier.height(14.dp))
+                    SecondaryButton("Skip photo proof (40% fewer points)", vm::continueToVerify, Modifier.fillMaxWidth())
                 }
             }
         } else {
-            Box(Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(28.dp)).background(SW.SurfaceAlt)) {
+            CameraFrame(aspect = 0.85f, maxWidth = 460.dp, background = SW.SurfaceAlt) {
                 AsyncImage(File(s.photoPath), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             }
             Spacer(Modifier.height(14.dp))
@@ -572,8 +590,9 @@ private fun ResultRow(ok: Boolean, title: String, subtitle: String) {
 /** Live barcode / QR scanner with optional OCR for serial numbers and IMEIs. */
 @Composable
 private fun CodeCamera(readText: Boolean, onCode: (ScannedCode) -> Unit) {
-    val controller = rememberCameraController(CameraController.IMAGE_ANALYSIS)
-    var torch by remember { mutableStateOf(false) }
+    val handle = rememberCameraHandle(CameraController.IMAGE_ANALYSIS)
+    val controller = handle.controller
+    var torch by remember(handle.lens) { mutableStateOf(false) }
     val analyzer = remember(readText) { CodeAnalyzer(readText) { code -> onCode(code) } }
     DisposableEffect(controller, analyzer) {
         controller.setImageAnalysisAnalyzer(CodeAnalyzer.analysisExecutor, analyzer)
@@ -582,24 +601,52 @@ private fun CodeCamera(readText: Boolean, onCode: (ScannedCode) -> Unit) {
             analyzer.close()
         }
     }
-    Box(Modifier.fillMaxWidth().aspectRatio(1.2f).clip(RoundedCornerShape(28.dp)).background(SW.Ink)) {
-        CameraPreview(controller, Modifier.fillMaxSize())
-        CornerBrackets(Modifier.fillMaxSize().padding(22.dp))
-        Text(
-            if (readText) "Barcode, serial (S/N) or IMEI" else "SmartWaste bin QR",
-            color = Color.White, style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).clip(RoundedCornerShape(50))
-                .background(SW.Smoke).padding(horizontal = 12.dp, vertical = 6.dp),
-        )
-        Box(
-            Modifier.align(Alignment.BottomEnd).padding(14.dp).size(44.dp).clip(CircleShape)
-                .background(if (torch) Color.White else SW.Frost)
-                .border(1.dp, SW.FrostLine, CircleShape)
-                .clickable { torch = !torch; controller.enableTorch(torch) },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("⚡", fontSize = 18.sp, color = if (torch) SW.Ink else Color.White)
+    CameraFrame(aspect = 1.2f, maxWidth = 520.dp) {
+        CameraPreview(handle, Modifier.fillMaxSize())
+        if (handle.status == CameraStatus.NO_CAMERA) {
+            NoCameraMessage(
+                if (readText) "Type the code below instead." else "Use GPS to confirm the bin instead.",
+                Modifier.fillMaxSize(),
+            )
+        } else {
+            CornerBrackets(Modifier.fillMaxSize().padding(22.dp))
+            Text(
+                if (readText) "Barcode, serial (S/N) or IMEI" else "SmartWaste bin QR",
+                color = Color.White, style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).clip(RoundedCornerShape(50))
+                    .background(SW.Smoke).padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+            if (handle.canSwitch) {
+                SwitchCameraButton(handle, Modifier.align(Alignment.BottomStart).padding(14.dp), size = 44.dp)
+            }
+            if (handle.hasFlash) {
+                Box(
+                    Modifier.align(Alignment.BottomEnd).padding(14.dp).size(44.dp).clip(CircleShape)
+                        .background(if (torch) Color.White else SW.Frost)
+                        .border(1.dp, SW.FrostLine, CircleShape)
+                        .clickable { torch = !torch; controller.enableTorch(torch) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("⚡", fontSize = 18.sp, color = if (torch) SW.Ink else Color.White)
+                }
+            }
         }
+    }
+}
+
+/** Camera-shaped box, centred and capped in width so it doesn't fill a whole tablet screen. */
+@Composable
+private fun CameraFrame(
+    aspect: Float,
+    maxWidth: Dp,
+    background: Color = SW.Ink,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.widthIn(max = maxWidth).fillMaxWidth().aspectRatio(aspect).clip(RoundedCornerShape(28.dp)).background(background),
+            content = content,
+        )
     }
 }
 

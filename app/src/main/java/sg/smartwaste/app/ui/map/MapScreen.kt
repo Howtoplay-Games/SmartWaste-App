@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -173,7 +174,7 @@ fun MapScreen(
 
         // ---------------------------------------------------------- top area
         Column(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp),
+            Modifier.align(Alignment.TopCenter).widthIn(max = 640.dp).fillMaxWidth().statusBarsPadding().padding(top = 8.dp),
         ) {
             AnimatedContent(targetState = s.nav.active, label = "top") { navigating ->
                 if (navigating) {
@@ -212,6 +213,7 @@ fun MapScreen(
         Column(
             Modifier
                 .align(Alignment.BottomCenter)
+                .widthIn(max = 640.dp)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(bottom = 100.dp),
