@@ -10,9 +10,12 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Home
@@ -96,13 +99,15 @@ private fun MainApp() {
             exitTransition = { fadeOut() },
         ) {
             composable(Routes.HOME) {
-                HomeScreen(
-                    onScan = { nav.switchTab(Routes.SCAN) },
-                    onOpenMap = { mode, category, place -> nav.navigate(Routes.map(mode = mode, category = category, place = place)) },
-                    onRewards = { nav.switchTab(Routes.REWARDS) },
-                    onProfile = { nav.switchTab(Routes.PROFILE) },
-                    onDeposit = { placeId -> nav.navigate(Routes.deposit(place = placeId)) },
-                )
+                ReadableWidth {
+                    HomeScreen(
+                        onScan = { nav.switchTab(Routes.SCAN) },
+                        onOpenMap = { mode, category, place -> nav.navigate(Routes.map(mode = mode, category = category, place = place)) },
+                        onRewards = { nav.switchTab(Routes.REWARDS) },
+                        onProfile = { nav.switchTab(Routes.PROFILE) },
+                        onDeposit = { placeId -> nav.navigate(Routes.deposit(place = placeId)) },
+                    )
+                }
             }
             composable(
                 Routes.MAP_PATTERN,
@@ -132,16 +137,18 @@ private fun MainApp() {
                 )
             }
             composable(Routes.RESULT) {
-                ResultScreen(
-                    onBack = { nav.popBackStack() },
-                    onFindBin = { cat ->
-                        val bins = cat?.binFriendly != false
-                        nav.navigate(Routes.map(mode = if (bins) "bins" else "buyers", category = cat?.name, auto = true))
-                    },
-                    onSell = { cat -> nav.navigate(Routes.map(mode = "buyers", category = cat?.name, auto = true)) },
-                    onDeposit = { nav.navigate(Routes.deposit()) },
-                    onScanAgain = { nav.popBackStack(Routes.SCAN, inclusive = false) },
-                )
+                ReadableWidth {
+                    ResultScreen(
+                        onBack = { nav.popBackStack() },
+                        onFindBin = { cat ->
+                            val bins = cat?.binFriendly != false
+                            nav.navigate(Routes.map(mode = if (bins) "bins" else "buyers", category = cat?.name, auto = true))
+                        },
+                        onSell = { cat -> nav.navigate(Routes.map(mode = "buyers", category = cat?.name, auto = true)) },
+                        onDeposit = { nav.navigate(Routes.deposit()) },
+                        onScanAgain = { nav.popBackStack(Routes.SCAN, inclusive = false) },
+                    )
+                }
             }
             composable(
                 Routes.DEPOSIT_PATTERN,
@@ -150,19 +157,21 @@ private fun MainApp() {
                     navArgument("qr") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { backStack ->
-                DepositScreen(
-                    placeId = backStack.arguments?.getString("place")?.ifBlank { null },
-                    qr = backStack.arguments?.getString("qr")?.ifBlank { null },
-                    onBack = { nav.popBackStack() },
-                    onHome = { nav.switchTab(Routes.HOME) },
-                    onRewards = { nav.switchTab(Routes.REWARDS) },
-                )
+                ReadableWidth {
+                    DepositScreen(
+                        placeId = backStack.arguments?.getString("place")?.ifBlank { null },
+                        qr = backStack.arguments?.getString("qr")?.ifBlank { null },
+                        onBack = { nav.popBackStack() },
+                        onHome = { nav.switchTab(Routes.HOME) },
+                        onRewards = { nav.switchTab(Routes.REWARDS) },
+                    )
+                }
             }
             composable(Routes.REWARDS) {
-                RewardsScreen(onEarn = { nav.navigate(Routes.deposit()) }, onScan = { nav.switchTab(Routes.SCAN) })
+                ReadableWidth { RewardsScreen(onEarn = { nav.navigate(Routes.deposit()) }, onScan = { nav.switchTab(Routes.SCAN) }) }
             }
-            composable(Routes.PROFILE) { ProfileScreen(onOpenAnalytics = { nav.navigate(Routes.ANALYTICS) }) }
-            composable(Routes.ANALYTICS) { AnalyticsScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.PROFILE) { ReadableWidth { ProfileScreen(onOpenAnalytics = { nav.navigate(Routes.ANALYTICS) }) } }
+            composable(Routes.ANALYTICS) { ReadableWidth { AnalyticsScreen(onBack = { nav.popBackStack() }) } }
         }
 
         AnimatedVisibility(
@@ -189,6 +198,17 @@ private fun MainApp() {
         }
 
         if (chatOpen) ChatSheet(onDismiss = { chatOpen = false })
+    }
+}
+
+/**
+ * Caps list/detail screens at a readable width and centres them on tablets. Phones (under
+ * 720 dp wide) are unchanged. The map and scan screens fill the screen and lay out themselves.
+ */
+@Composable
+private fun ReadableWidth(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().background(SW.Bg), contentAlignment = Alignment.TopCenter) {
+        Box(Modifier.fillMaxHeight().widthIn(max = 720.dp).fillMaxWidth()) { content() }
     }
 }
 
