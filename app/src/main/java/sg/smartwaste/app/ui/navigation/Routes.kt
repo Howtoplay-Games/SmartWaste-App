@@ -10,6 +10,7 @@ object Routes {
     const val DEPOSIT = "deposit"
     const val REWARDS = "rewards"
     const val PROFILE = "profile"
+    const val ANALYTICS = "analytics"
 
     const val MAP_PATTERN = "$MAP?mode={mode}&category={category}&auto={auto}&place={place}&q={q}"
     const val DEPOSIT_PATTERN = "$DEPOSIT?place={place}&qr={qr}"
